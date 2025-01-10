@@ -21,8 +21,8 @@ fn main() -> Result<()> {
 
 // DFS + memoization
 fn blink(times: u64, stone: u64, memo: &mut HashMap<u64, HashMap<u64, u64>>) -> u64 {
-    if memo.contains_key(&stone) && memo[&stone].contains_key(&times) {
-        return memo[&stone][&times];
+    if let Some(cached) = memo.get(&stone).and_then(|m| m.get(&times)) {
+        return *cached;
     } else if times == 0 {
         return 1;
     }
