@@ -1,0 +1,9 @@
+[package]
+name = "day-13a"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.95"
+regex = "1.11.1"
+mathru = "0.15.5"
