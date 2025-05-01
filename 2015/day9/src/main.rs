@@ -14,16 +14,19 @@ fn main() -> Result<()> {
         if tokens.len() != 5 {
             return Err(anyhow::anyhow!("Invalid input: {line}"));
         }
-        all_cities.insert(String::from(tokens[0]));
-        all_cities.insert(String::from(tokens[2]));
+        let from = tokens[0];
+        let to = tokens[2];
+        let distance = tokens[4].parse::<usize>()?;
+        all_cities.insert(from.to_string());
+        all_cities.insert(to.to_string());
         distance_map
-            .entry(String::from(tokens[0]))
+            .entry(from.to_string())
             .or_insert(HashMap::new())
-            .insert(String::from(tokens[2]), tokens[4].parse()?);
+            .insert(to.to_string(), distance);
         distance_map
-            .entry(String::from(tokens[2]))
+            .entry(to.to_string())
             .or_insert(HashMap::new())
-            .insert(String::from(tokens[0]), tokens[4].parse()?);
+            .insert(from.to_string(), distance);
     }
 
     let distance_iter = all_cities
