@@ -15,10 +15,10 @@ fn main() -> Result<()> {
 fn count(value: &Value, filter_red: bool) -> i64 {
     match value {
         Value::Number(n) => n.as_i64().unwrap_or(0),
-        Value::Array(a) => a.iter().fold(0, |acc, v| acc + count(v, filter_red)),
+        Value::Array(a) => a.iter().map(|v| count(v, filter_red)).sum(),
         Value::Object(o) => {
             if !filter_red || !o.values().any(|v| v.as_str() == Some("red")) {
-                o.iter().fold(0, |acc, (_k, v)| acc + count(v, filter_red))
+                o.iter().map(|(_k, v)| count(v, filter_red)).sum()
             } else {
                 0
             }
