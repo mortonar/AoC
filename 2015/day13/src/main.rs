@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::io::BufRead;
+use std::ops::Neg;
 
 fn main() -> Result<()> {
     let mut happiness: HashMap<String, HashMap<String, isize>> = HashMap::new();
@@ -15,7 +16,7 @@ fn main() -> Result<()> {
         to.pop();
         let mut level = tokens[3].parse::<isize>()?;
         if tokens[2] == "lose" {
-            level = 0 - level;
+            level = level.neg()
         }
         happiness
             .entry(from)
@@ -60,10 +61,6 @@ fn arrange<'a>(
 }
 
 fn score(seating: &mut Vec<&str>, happiness: &HashMap<String, HashMap<String, isize>>) -> isize {
-    if seating.len() == 1 {
-        return 0;
-    }
-
     let score = seating
         .windows(2)
         .map(|people| happiness[people[0]][people[1]] + happiness[people[1]][people[0]])
