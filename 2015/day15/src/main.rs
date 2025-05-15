@@ -36,34 +36,30 @@ fn max_score(
     calorie_target: Option<usize>,
 ) -> usize {
     if num_ingredients == 0 {
-        return if selection.iter().sum::<usize>() == 100 {
-            if let Some(target) = calorie_target {
-                let calories = properties
-                    .last()
-                    .unwrap()
-                    .iter()
-                    .zip(&mut *selection)
-                    .map(|(c, s)| c * *s as isize)
-                    .sum::<isize>();
-                let calories = max(calories, 0) as usize;
-                if calories != target {
-                    return 0;
-                }
+        if let Some(target) = calorie_target {
+            let calories = properties
+                .last()
+                .unwrap()
+                .iter()
+                .zip(&mut *selection)
+                .map(|(c, s)| c * *s as isize)
+                .sum::<isize>();
+            let calories = max(calories, 0) as usize;
+            if calories != target {
+                return 0;
             }
+        }
 
-            let mut total = 1;
-            for prop in properties[0..properties.len() - 1].iter() {
-                let prop_total = prop
-                    .iter()
-                    .zip(&mut *selection)
-                    .map(|(p, s)| p * *s as isize)
-                    .sum::<isize>();
-                total *= max(prop_total, 0) as usize;
-            }
-            total
-        } else {
-            0
-        };
+        let mut total = 1;
+        for prop in properties[0..properties.len() - 1].iter() {
+            let prop_total = prop
+                .iter()
+                .zip(&mut *selection)
+                .map(|(p, s)| p * *s as isize)
+                .sum::<isize>();
+            total *= max(prop_total, 0) as usize;
+        }
+        return total;
     }
 
     // Only iterate over a range of possible selections based on what's already chosen
