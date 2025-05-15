@@ -65,7 +65,16 @@ fn max_score(
             0
         };
     }
-    (0..=100)
+
+    // Only iterate over a range of possible selections based on what's already chosen
+    let upper = 100 - selection[num_ingredients..].iter().sum::<usize>() as isize;
+    let upper = max(upper, 0) as usize;
+    let (lower, upper) = if num_ingredients != 1 {
+        (0, upper)
+    } else {
+        (upper, upper)
+    };
+    (lower..=upper)
         .into_iter()
         .map(|i| {
             selection[num_ingredients - 1] = i;
