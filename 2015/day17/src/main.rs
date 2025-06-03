@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::collections::HashMap;
 use std::env;
 use std::io::BufRead;
 
@@ -14,8 +13,8 @@ fn main() -> Result<()> {
         containers
     };
 
-    // Selection length -> # of ways to build a selection of that length
-    let mut combinations = HashMap::new();
+    // i == Selection length; combinations[i] -> # of ways to build a selection of that length
+    let mut combinations = vec![0; containers.len() + 1];
     // mask @ bit i == 1 -> choosing containers[i]
     for mask in 1..=(1 << containers.len()) {
         // Calculate what containers are selected with this mask
@@ -28,17 +27,14 @@ fn main() -> Result<()> {
             });
 
         if sum == to_store {
-            combinations
-                .entry(num_selected)
-                .and_modify(|c| *c += 1)
-                .or_insert(1);
+            combinations[num_selected] += 1;
         }
     }
 
-    println!("Part 1: {}", combinations.values().sum::<usize>());
+    println!("Part 1: {}", combinations.iter().sum::<usize>());
     println!(
         "Part 2: {}",
-        combinations[combinations.keys().min().unwrap()]
+        combinations.iter().find(|&&i| i != 0).unwrap()
     );
 
     Ok(())
