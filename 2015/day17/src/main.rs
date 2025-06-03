@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashMap;
 use std::env;
 use std::io::BufRead;
 
@@ -14,55 +14,33 @@ fn main() -> Result<()> {
         containers
     };
 
-    let min = fill_bfs(&containers, to_store, false);
-    println!("Part 1: {}", min);
-    let min = fill_bfs(&containers, to_store, true);
-    println!("Part 2: {}", min);
+    let mut selection = Vec::with_capacity(containers.len());
+    // Selection length -> # of ways to build a selection of that length
+    let mut combinations = HashMap::new();
+    // mask @ bit i == 1 -> choosing containers[i]
+    for mask in 1..=(1 << containers.len()) {
+        // Calculate what containers are selected with this mask
+        containers
+            .iter()
+            .enumerate()
+            .filter(|(i, _c)| mask & (1 << *i) > 0)
+            .for_each(|(_i, c)| selection.push(*c));
+
+        if selection.iter().sum::<usize>() == to_store {
+            combinations
+                .entry(selection.len())
+                .and_modify(|c| *c += 1)
+                .or_insert(1);
+        }
+
+        selection.clear();
+    }
+
+    println!("Part 1: {}", combinations.values().sum::<usize>());
+    println!(
+        "Part 2: {}",
+        combinations[combinations.keys().min().unwrap()]
+    );
 
     Ok(())
-}
-
-fn fill_bfs(containers: &[usize], to_store: usize, find_min: bool) -> usize {
-    let mut queue = VecDeque::new();
-    containers.iter().enumerate().for_each(|(i, &c)| {
-        if to_store >= c {
-            queue.push_back((vec![i], to_store - c));
-        }
-    });
-
-    let mut unique = HashSet::new();
-    let mut depth_limit = 0;
-    while !queue.is_empty() {
-        let (mut path, remaining) = queue.pop_front().unwrap();
-
-        if remaining == 0 {
-            if find_min {
-                depth_limit = path.len();
-                queue.push_back((path, remaining));
-                break;
-            } else {
-                path.sort();
-                unique.insert(path);
-                continue;
-            }
-        }
-
-        containers.iter().enumerate().for_each(|(i, &c)| {
-            if remaining >= c && !path.contains(&i) {
-                let mut path_c = path.clone();
-                path_c.push(i);
-                queue.push_back((path_c, remaining - c));
-            }
-        });
-    }
-
-    if find_min {
-        for (mut path, remaining) in queue.into_iter() {
-            if path.len() == depth_limit && remaining == 0 {
-                path.sort();
-                unique.insert(path);
-            }
-        }
-    }
-    unique.len()
 }
