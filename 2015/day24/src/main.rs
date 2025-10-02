@@ -18,7 +18,7 @@ fn main() -> Result<()> {
     };
     let search_context = ideal_config_dfs(context).unwrap();
     dbg!(&search_context);
-    println!("Part 1: {}", search_context.first_quantam_entanglement());
+    println!("Part 1: {}", search_context.min_quantum_entanglement());
 
     Ok(())
 }
@@ -81,36 +81,37 @@ impl SearchContext {
         let placing = self.placing_num;
         let package = self.to_place[placing];
         for (i, group) in self.configuration.groups.iter().enumerate() {
-            // Ensure we're not placing more packages into the first group than our current best has
-            match current_best {
-                Some(cb) if i == 0 => {
-                    if cb.configuration.groups[0].len() < group.len() + 1 {
-                        continue;
-                    }
-                }
-                _ => {}
-            }
             // Ensure placing this package won't put us over target weight for a group
             if (group.iter().sum::<usize>() + package) <= self.target_weight {
                 let mut context = self.clone();
                 context.configuration.groups[i].push(package);
                 context.placing_num = placing + 1;
-                contexts.push(context);
+                match current_best {
+                    Some(cb) => {
+                        if context < *cb {
+                            contexts.push(context);
+                        } else {
+                            println!("Pruning");
+                        }
+                    }
+                    _ => contexts.push(context),
+                }
             }
         }
 
         contexts
     }
 
-    fn first_group_size(&self) -> usize {
-        self.configuration.groups[0].len()
+    fn min_group_size(&self) -> usize {
+        self.configuration.groups.iter().map(|g| g.len()).min().unwrap_or(0)
     }
 
-    fn first_quantam_entanglement(&self) -> u128 {
-        self.configuration.groups[0]
+    fn min_quantum_entanglement(&self) -> u128 {
+        self.configuration.groups
             .iter()
-            .map(|p| *p as u128)
-            .product()
+            .map(|g| g.iter().map(|p| *p as u128).product::<u128>())
+            .min()
+            .unwrap_or(0)
     }
 }
 
@@ -130,13 +131,14 @@ impl PartialOrd<Self> for SearchContext {
 
 impl Ord for SearchContext {
     fn cmp(&self, other: &Self) -> Ordering {
-        if self.first_group_size() < other.first_group_size() {
+        // TODO This needs to ensure we're comparing with the same two groups all the way through
+        if self.min_group_size() < other.min_group_size() {
             Ordering::Less
-        } else if self.first_group_size() > other.first_group_size() {
+        } else if self.min_group_size() > other.min_group_size() {
             Ordering::Greater
-        } else if self.first_quantam_entanglement() < other.first_quantam_entanglement() {
+        } else if self.min_quantum_entanglement() < other.min_quantum_entanglement() {
             Ordering::Less
-        } else if self.first_quantam_entanglement() > other.first_quantam_entanglement() {
+        } else if self.min_quantum_entanglement() > other.min_quantum_entanglement() {
             Ordering::Greater
         } else {
             Ordering::Equal
