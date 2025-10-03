@@ -9,8 +9,6 @@ fn main() -> Result<()> {
         let line = line?;
         packages.push(line.trim().parse()?);
     }
-    packages.sort();
-    packages.reverse();
     println!("Part 1: {}", first_qe(&packages, 3)?);
     println!("Part 2: {}", first_qe(&packages, 4)?);
 
@@ -29,9 +27,12 @@ fn first_qe(packages: &[usize], groups: usize) -> Result<usize> {
     for i in 0..packages.len() {
         for comb in packages.iter().combinations(i) {
             if comb.iter().map(|p| *p).sum::<usize>() == target {
-                return Ok(comb.iter().map(|p| *p).product::<usize>())
+                return Ok(comb.iter().map(|p| *p).product::<usize>());
             }
         }
     }
-    Err(anyhow::Error::msg(format!("No combination found for {} groups", groups)))
+    Err(anyhow::Error::msg(format!(
+        "No combination found for {} groups",
+        groups
+    )))
 }
