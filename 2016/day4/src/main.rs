@@ -15,6 +15,7 @@ struct Freq {
 fn main() -> Result<()> {
     let regex = Regex::new(r"([a-z-]+)([0-9].+)\[([a-z].+)\]")?;
     let mut sector_sum = 0;
+    let mut sector_found = 0;
     for line in io::stdin().lock().lines() {
         let line = line?;
         let caps = regex
@@ -28,10 +29,11 @@ fn main() -> Result<()> {
         }
 
         if decrypt(&name, sector_id) == "northpole object storage " {
-            println!("Part 2: {sector_id}");
+            sector_found = sector_id;
         }
     }
     println!("Part 1: {sector_sum}");
+    println!("Part 2: {sector_found}");
 
     Ok(())
 }
