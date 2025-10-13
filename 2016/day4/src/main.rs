@@ -1,9 +1,16 @@
 use anyhow::Result;
 use regex::Regex;
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 use std::io;
 use std::io::BufRead;
+
+const BASE: usize = 'a' as usize;
+
+#[derive(Copy, Clone, Debug, Default)]
+struct Freq {
+    c: char,
+    count: usize,
+}
 
 fn main() -> Result<()> {
     let regex = Regex::new(r"([a-z-]+)([0-9].+)\[([a-z].+)\]")?;
@@ -14,7 +21,7 @@ fn main() -> Result<()> {
             .captures(&line)
             .ok_or_else(|| anyhow::anyhow!("Invalid input"))?;
         let [_match, name, sector_id, checksum] = [&caps[0], &caps[1], &caps[2], &caps[3]];
-        let sector_id: usize = sector_id.parse()?;
+        let sector_id = sector_id.parse::<usize>()?;
 
         if is_real(name, checksum) {
             sector_sum += sector_id;
@@ -30,70 +37,38 @@ fn main() -> Result<()> {
 }
 
 fn is_real(name: &str, checksum: &str) -> bool {
-    let mut common: [usize; 26] = [0; 26];
-    let base = 'a' as usize;
+    // common[i] = freq of i; i = offset from 'a'
+    let mut common: [Freq; 26] = [Freq::default(); 26];
+    for i in 0..26 {
+        common[i].c = (i + BASE) as u8 as char;
+    }
+
     for c in name.chars() {
         if c != '-' {
-            common[c as usize - base] += 1;
+            common[c as usize - BASE].count += 1;
         }
     }
 
-    let mut sorted = BinaryHeap::with_capacity(common.len());
-    let base = 'a' as u8;
-    for i in 0..common.len() {
-        sorted.push(Freq {
-            c: (base + i as u8) as char,
-            count: common[i],
-        });
-    }
+    common.sort_by(|a, b| match b.count.cmp(&a.count) {
+        Ordering::Equal => a.c.cmp(&b.c),
+        val => val,
+    });
 
     let mut calc_checksum = String::new();
-    for _i in 0..5 {
-        calc_checksum.push(sorted.pop().unwrap().c);
+    for i in 0..5 {
+        calc_checksum.push(common[i].c);
     }
 
     calc_checksum == checksum
 }
 
-struct Freq {
-    c: char,
-    count: usize,
-}
-
-impl Eq for Freq {}
-
-impl PartialEq<Self> for Freq {
-    fn eq(&self, other: &Self) -> bool {
-        self.c == other.c && self.count == other.count
-    }
-}
-
-impl PartialOrd<Self> for Freq {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Freq {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if self.count > other.count {
-            Ordering::Greater
-        } else if self.count < other.count {
-            Ordering::Less
-        } else {
-            other.c.cmp(&self.c)
-        }
-    }
-}
-
 fn decrypt(name: &str, sector_id: usize) -> String {
     let mut decrypted = String::with_capacity(name.len());
-    let base = 'a' as usize;
     for c in name.chars() {
         if c == '-' {
             decrypted.push(' ');
         } else {
-            let rotated = ((c as usize - base) + sector_id) % 26 + base;
+            let rotated = ((c as usize - BASE) + sector_id) % 26 + BASE;
             decrypted.push(rotated as u8 as char);
         }
     }
