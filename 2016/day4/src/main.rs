@@ -28,7 +28,7 @@ fn main() -> Result<()> {
             sector_sum += sector_id;
         }
 
-        if decrypt(&name, sector_id) == "northpole object storage " {
+        if decrypt(name, sector_id) == "northpole object storage " {
             sector_found = sector_id;
         }
     }
@@ -41,8 +41,8 @@ fn main() -> Result<()> {
 fn is_real(name: &str, checksum: &str) -> bool {
     // common[i] = freq of i; i = offset from 'a'
     let mut common: [Freq; 26] = [Freq::default(); 26];
-    for i in 0..26 {
-        common[i].c = (i + BASE) as u8 as char;
+    for (i, c) in common.iter_mut().enumerate() {
+        c.c = (i + BASE) as u8 as char;
     }
 
     for c in name.chars() {
@@ -57,8 +57,8 @@ fn is_real(name: &str, checksum: &str) -> bool {
     });
 
     let mut calc_checksum = String::new();
-    for i in 0..5 {
-        calc_checksum.push(common[i].c);
+    for c in common.iter().take(5) {
+        calc_checksum.push(c.c);
     }
 
     calc_checksum == checksum

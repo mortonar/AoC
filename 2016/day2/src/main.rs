@@ -3,7 +3,7 @@ use std::io;
 use std::io::BufRead;
 
 fn main() -> Result<()> {
-    let mut keypads = vec![
+    let mut keypads = [
         Keypad::default(),
         Keypad {
             layout: Layout::Diamond,

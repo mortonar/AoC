@@ -12,7 +12,6 @@ fn main() -> Result<()> {
         let mut rows = [[0; 3]; 3];
         for (i, line) in chunk.enumerate() {
             let sides: [usize; 3] = line?
-                .trim()
                 .split_whitespace()
                 .map(|s| s.parse::<usize>().context("Failed to parse side"))
                 .collect::<Result<Vec<_>>>()?
