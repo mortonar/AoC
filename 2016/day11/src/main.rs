@@ -1,22 +1,19 @@
 use anyhow::Result;
 use itertools::Itertools;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::io::BufRead;
 
-// * Generators (G) of a certain type pair with Microchips (M) of the same type.
-// * Ms can only generate shield if powered by their corresponding G.
-//   * An M will be 'fried' if in the presence of other Gs unless it's powered by its corresponding G
-//   * Keep Ms powered if they're in the same room as other Gs or otherwise in different room.
-// * Elevator can carry at most yourself and two Gs or Ms in any combination
-//   * Elevator won't function unless it has one G or M
-//   * Elevator always stops on each floor to recharge, and this takes long enough that the items
-//     within it and the items on that floor can irradiate each other. This is preventable if a G is
-//     present to charge its corresponding M. G with another G is fine though. The Ms need protected.
+// This problem absolutely put me through the ringer. I tried everything from turning the state
+// representation into a bitmask (and back again...painfully) to A* search with lousy (but valid)
+// heuristic. Everything.
 //
-// * GOAL: Starting on the first floor, bring all Ms and Gs to the 4th floor safely
-//         Get minimum number of steps
+// At the end of the day BFS sufficient for a solution. It's even fast! But the absolute CRUCIAL bit
+// - and the only thing that matters in terms of runtime - is normalizing the state representations
+// when tracking which states you've visited. Items of different elements all behave the same so
+// they should be treated the same - despite the fancy labels.
 fn main() -> Result<()> {
-    let mut floors: Vec<HashSet<Item>> = vec![HashSet::new(); 4];
+    // Element -> [M-Floor, G-Floor]
+    let mut items: HashMap<String, Vec<u8>> = HashMap::new();
 
     for line in std::io::stdin().lock().lines() {
         let line = line?;
@@ -31,184 +28,152 @@ fn main() -> Result<()> {
         };
 
         for (i, t) in tokens.iter().enumerate().skip(1) {
-            let mut label = tokens[i - 1];
-            if label.ends_with("-compatible") {
-                label = label.strip_suffix("-compatible").unwrap();
+            if !t.contains("generator") && !t.contains("microchip") {
+                continue;
             }
-            let label = label.to_string();
 
+            let element = tokens[i - 1];
+            let element = element
+                .strip_suffix("-compatible")
+                .unwrap_or(element)
+                .to_string();
+
+            items.entry(element.clone()).or_insert(vec![255; 2]);
             if t.contains("generator") {
-                floors[floor].insert(Item::Generator(label));
-            } else if t.contains("microchip") {
-                floors[floor].insert(Item::Microchip(label));
+                items.get_mut(&element).unwrap()[1] = floor;
+            } else {
+                items.get_mut(&element).unwrap()[0] = floor;
             }
         }
     }
-    println!("Part 1: {}", min_steps_bfs(&floors)?);
+
+    // [[E1M-F, E1G-F], [E2M-F, E2G-F], ...]
+    let mut items: Vec<Vec<u8>> = items.into_values().collect_vec();
+
+    println!("Part 1: {}", min_steps_bfs(items.clone())?);
+
+    // Throw the extra element pairs on first floor.
+    items.push(vec![0u8, 0u8]);
+    items.push(vec![0u8, 0u8]);
+    println!("Part 2: {}", min_steps_bfs(items)?);
 
     Ok(())
 }
 
-fn min_steps_bfs(initial_config: &[HashSet<Item>]) -> Result<usize> {
+fn min_steps_bfs(init_state: Vec<Vec<u8>>) -> Result<usize> {
     let mut queue = VecDeque::new();
-    queue.push_back(Context {
-        elevator: 0,
-        floor_config: initial_config.to_owned(),
-        steps: 0,
-    });
-    let mut visited: Vec<Context> = Vec::new();
+    queue.push_back(Node::new(init_state));
 
-    while let Some(config) = queue.pop_front() {
-        // config.print();
+    // (elevator, normalized Node.item_pairs) -> # of steps to reach
+    let mut visited: HashMap<(u8, Vec<Vec<u8>>), usize> = HashMap::new();
 
-        if config.floor_config.is_goal() {
-            return Ok(config.steps);
+    while let Some(current) = queue.pop_front() {
+        if current.is_end_state() {
+            return Ok(current.steps);
         }
 
-        // TODO This "branch checking" check on visited will become more and more expensive as the search goes on since it's a growing linear search.
-        //      The config/state representation is too bulky and not hashable since it contains inner hashsets.
-        //      Let's try to encode the states as bitmasks for the items so we have something hashable.
-        if visited
-            .iter()
-            .any(|v| v.eq(&config) && v.elevator == config.elevator && v.steps < config.steps)
-        {
-            continue;
-        }
-
-        let mut taking = config.floor_config[config.elevator]
-            .iter()
-            .combinations(1)
-            .collect::<Vec<_>>();
-        let mut take_two = config.floor_config[config.elevator]
-            .iter()
-            .combinations(2)
-            .collect::<Vec<_>>();
-        taking.append(&mut take_two);
-        // dbg!(&taking);
-        for taking in taking {
-            let taking: Vec<Item> = taking.iter().map(|i| (*i).clone()).collect();
-            let mut new_config = config.clone();
-            new_config.floor_config[config.elevator].retain(|i| !taking.contains(i));
-            new_config.steps += 1;
-
-            if config.elevator < 3 {
-                let mut up_config = new_config.clone();
-                up_config.elevator += 1;
-                for t in &taking {
-                    up_config.floor_config[up_config.elevator].insert(t.clone());
-                }
-                if up_config.floor_config.is_valid_state() {
-                    visited.push(up_config.clone());
-                    queue.push_back(up_config);
-                } else {
-                    // println!("Invalid:");
-                    // up_config.print();
-                }
-            }
-            if config.elevator > 0 {
-                let mut down_config = new_config.clone();
-                down_config.elevator -= 1;
-                for t in &taking {
-                    down_config.floor_config[down_config.elevator].insert(t.clone());
-                }
-                if down_config.floor_config.is_valid_state() {
-                    visited.push(down_config.clone());
-                    queue.push_back(down_config)
-                } else {
-                    // println!("Invalid:");
-                    // down_config.print();
-                }
+        // All element components behave the same so states that are identical but with different
+        // element names swapped out are truly identical. Trimming identical states like this cuts
+        // down enormously on the search space.
+        let mut normalized = current.item_pairs.clone();
+        normalized.sort_unstable();
+        let key = (current.elevator, normalized);
+        if let Some(&v_steps) = visited.get(&key) {
+            if v_steps <= current.steps {
+                continue;
             }
         }
+        visited.insert(key, current.steps);
+
+        current
+            .neighbors()
+            .into_iter()
+            .for_each(|n| queue.push_back(n));
     }
 
-    Err(anyhow::anyhow!("No paths found"))
+    Err(anyhow::anyhow!("No path found!"))
 }
 
-#[derive(Debug, Clone)]
-struct Context {
-    elevator: usize,
-    floor_config: Vec<HashSet<Item>>,
+#[derive(Clone, Debug)]
+struct Node {
+    item_pairs: Vec<Vec<u8>>,
+    elevator: u8,
     steps: usize,
 }
 
-impl PartialEq<Self> for Context {
-    fn eq(&self, other: &Self) -> bool {
-        self.floor_config
-            .iter()
-            .zip(other.floor_config.iter())
-            .all(|(l, r)| l.eq(r))
+impl Node {
+    fn new(item_pairs: Vec<Vec<u8>>) -> Self {
+        Self {
+            item_pairs,
+            elevator: 0,
+            steps: 0,
+        }
     }
-}
 
-impl Context {
-    fn print(&self) {
-        println!("------------");
-        println!("elevator: {}", self.elevator);
-        println!("steps: {}", self.steps);
-        for (i, floor) in self.floor_config.iter().enumerate().rev() {
-            print!("F{} ", i + 1);
-            for item in floor {
-                match item {
-                    Item::Generator(l) => print!("G-{l} "),
-                    Item::Microchip(l) => print!("M-{l} "),
+    fn neighbors(&self) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        let movable = self.movable_indices();
+        for moving in movable
+            .iter()
+            .cloned()
+            .combinations(1)
+            .chain(movable.iter().cloned().combinations(2))
+            .collect::<Vec<_>>()
+        {
+            for &dir in &[1, -1] {
+                let new_elevator = self.elevator as i8 + dir;
+                if !(0..=3).contains(&new_elevator) {
+                    continue;
+                }
+                let new_elevator = new_elevator as u8;
+                let mut neighbor = self.clone();
+                neighbor.elevator = new_elevator;
+                neighbor.steps += 1;
+                for &(i, j) in moving.iter() {
+                    neighbor.item_pairs[i][j] = new_elevator;
+                }
+                if neighbor.is_valid_state() {
+                    neighbors.push(neighbor);
                 }
             }
-            println!();
         }
-        println!("------------");
+        neighbors
     }
-}
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-enum Item {
-    Generator(String),
-    Microchip(String),
-}
-
-trait ValidState {
-    fn is_valid_state(&self) -> bool;
-}
-
-impl ValidState for HashSet<Item> {
-    fn is_valid_state(&self) -> bool {
-        if !self.iter().any(|i| matches!(i, Item::Generator(_))) {
-            return true;
-        }
-
-        for item in self.iter() {
-            if let Item::Microchip(m_label) = item {
-                let mut matching_gen = false;
-                for item2 in self.iter() {
-                    if let Item::Generator(g_label) = item2 {
-                        if m_label.eq(g_label) {
-                            matching_gen = true;
-                            break;
-                        }
-                    }
+    // Get indices of all elements on the same floor as the elevator - e.g. (3,1) is the 4th generator
+    fn movable_indices(&self) -> Vec<(usize, usize)> {
+        self.item_pairs
+            .iter()
+            .enumerate()
+            .flat_map(|(i, pair)| pair.iter().enumerate().map(move |(j, item)| (i, j, *item)))
+            .filter_map(|(i, j, item)| {
+                if item == self.elevator {
+                    Some((i, j))
+                } else {
+                    None
                 }
-                if !matching_gen {
+            })
+            .collect()
+    }
+
+    // For each microchip: either we have our generator or no other generators are on our floor
+    fn is_valid_state(&self) -> bool {
+        for floor in 0..=3 {
+            let gens: Vec<_> = self.item_pairs.iter().filter(|p| p[1] == floor).collect();
+            for p in self.item_pairs.iter() {
+                if p[0] == floor && p[1] != floor && !gens.is_empty() {
                     return false;
                 }
             }
         }
-
         true
     }
-}
 
-impl ValidState for Vec<HashSet<Item>> {
-    fn is_valid_state(&self) -> bool {
-        self.iter().all(|l| l.is_valid_state())
-    }
-}
-
-trait IsGoal {
-    fn is_goal(&self) -> bool;
-}
-
-impl IsGoal for Vec<HashSet<Item>> {
-    fn is_goal(&self) -> bool {
-        self.iter().rev().skip(1).all(|floor| floor.is_empty())
+    // Everything is on the 4th floor
+    fn is_end_state(&self) -> bool {
+        self.item_pairs
+            .iter()
+            .flat_map(|p| p.iter())
+            .all(|i| *i == 3)
     }
 }
