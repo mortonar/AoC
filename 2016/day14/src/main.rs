@@ -65,9 +65,7 @@ impl HexHasher {
 
         if key_stretching {
             for _ in 0..2016 {
-                self.buffer.clear();
-                write!(&mut self.buffer, "{}", &hex)?;
-                hash = md5::compute(self.buffer.as_bytes()).into();
+                hash = md5::compute(hex.as_bytes()).into();
                 hex = hex::encode(hash);
             }
         }
