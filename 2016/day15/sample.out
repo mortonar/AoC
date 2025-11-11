@@ -1,0 +1,69 @@
+   Compiling day15 v0.1.0 (/Users/alex.morton/workspaces/AoC/2016/day15)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.81s
+     Running `target/debug/day15`
+[day15/src/main.rs:42:13] t = 0
+[day15/src/main.rs:43:13] &discs = [
+    Disc {
+        positions: 5,
+        position: 4,
+    },
+    Disc {
+        positions: 2,
+        position: 1,
+    },
+]
+[day15/src/main.rs:42:13] t = 1
+[day15/src/main.rs:43:13] &discs = [
+    Disc {
+        positions: 5,
+        position: 0,
+    },
+    Disc {
+        positions: 2,
+        position: 0,
+    },
+]
+[day15/src/main.rs:42:13] t = 2
+[day15/src/main.rs:43:13] &discs = [
+    Disc {
+        positions: 5,
+        position: 1,
+    },
+    Disc {
+        positions: 2,
+        position: 1,
+    },
+]
+[day15/src/main.rs:42:13] t = 3
+[day15/src/main.rs:43:13] &discs = [
+    Disc {
+        positions: 5,
+        position: 2,
+    },
+    Disc {
+        positions: 2,
+        position: 0,
+    },
+]
+[day15/src/main.rs:42:13] t = 4
+[day15/src/main.rs:43:13] &discs = [
+    Disc {
+        positions: 5,
+        position: 3,
+    },
+    Disc {
+        positions: 2,
+        position: 1,
+    },
+]
+Part 1: 5
+[day15/src/main.rs:39:13] &discs = [
+    Disc {
+        positions: 5,
+        position: 4,
+    },
+    Disc {
+        positions: 2,
+        position: 0,
+    },
+]
