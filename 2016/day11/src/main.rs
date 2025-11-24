@@ -78,10 +78,10 @@ fn min_steps_bfs(init_state: Vec<Vec<u8>>) -> Result<usize> {
         let mut normalized = current.item_pairs.clone();
         normalized.sort_unstable();
         let key = (current.elevator, normalized);
-        if let Some(&v_steps) = visited.get(&key) {
-            if v_steps <= current.steps {
-                continue;
-            }
+        if let Some(&v_steps) = visited.get(&key)
+            && v_steps <= current.steps
+        {
+            continue;
         }
         visited.insert(key, current.steps);
 

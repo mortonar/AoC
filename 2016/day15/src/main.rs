@@ -50,7 +50,7 @@ impl Disc {
 
     // If we rotated n times, would we hit 0?
     fn hit_0_in(&self, n: usize) -> bool {
-        (self.position + n) % self.positions == 0
+        (self.position + n).is_multiple_of(self.positions)
     }
 
     fn rotate(&mut self) {

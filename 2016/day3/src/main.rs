@@ -23,6 +23,7 @@ fn main() -> Result<()> {
             rows[i] = sides;
         }
 
+        #[allow(clippy::needless_range_loop)]
         for col in 0..3 {
             let column = [rows[0][col], rows[1][col], rows[2][col]];
             valid_vert.count(&column);

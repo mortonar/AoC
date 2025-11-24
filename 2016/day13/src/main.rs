@@ -44,10 +44,10 @@ fn min_steps_bfs(goal: Coordinate, favorite: usize) -> Result<(usize, Visited)> 
             return Ok((current.steps, visited));
         }
 
-        if let Some(v) = visited.get(&current) {
-            if v.steps <= current.steps {
-                continue;
-            }
+        if let Some(v) = visited.get(&current)
+            && v.steps <= current.steps
+        {
+            continue;
         }
         visited.insert(current.clone());
 
@@ -90,7 +90,7 @@ impl Node {
                 ) {
                     let num = (x * x) + (3 * x) + (2 * x * y) + (y) + (y * y) + favorite;
                     let num_ones = num.count_ones();
-                    if num_ones % 2 == 0 {
+                    if num_ones.is_multiple_of(2) {
                         return Some(Node::new((x, y), self.steps + 1));
                     }
                 }
