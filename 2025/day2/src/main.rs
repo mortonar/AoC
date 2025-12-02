@@ -10,10 +10,11 @@ fn main() -> Result<()> {
     for range in line.trim().split(',') {
         let (start, end) = parse_range(range)?;
         (start..=end).for_each(|id| {
-            if repeat_twice(id) {
+            let id_chars: Vec<_> = id.to_string().chars().collect();
+            if repeat_twice(&id_chars) {
                 sum_p1 += id;
             }
-            if repeat_n_times(id) {
+            if repeat_n_times(&id_chars) {
                 sum_p2 += id;
             }
         });
@@ -33,16 +34,14 @@ fn parse_range(s: &str) -> Result<(usize, usize)> {
 }
 
 // The ID is ONLY composed of the same sequence twice. So split the thing in half and check it.
-fn repeat_twice(id: usize) -> bool {
-    let id = id.to_string();
+fn repeat_twice(id: &[char]) -> bool {
     let mid = id.len() / 2;
     id[0..mid].eq(&id[mid..])
 }
 
 // Now the sequence can be of any length but repeated enough times to compose the ID.
 // Check all possible sequences from 0 to half the ID's length (it can't be any larger).
-fn repeat_n_times(id: usize) -> bool {
-    let id: Vec<_> = id.to_string().chars().collect();
+fn repeat_n_times(id: &[char]) -> bool {
     let mid = id.len() / 2;
     (1..=mid).any(|chunk_size| {
         let seq = &id[0..chunk_size];
