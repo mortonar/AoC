@@ -20,5 +20,5 @@ if [[ -e $DIR ]]; then
   exit 1
 fi
 
-cargo new --bin $DIR
-cargo add anyhow --package $DIR
+cargo new --bin "$DIR"
+cargo add anyhow --package "$DIR"
