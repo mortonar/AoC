@@ -1,0 +1,24 @@
+#!/bin/bash
+
+function usage {
+  >&2 echo "Usage: $0 [1-25]"
+  exit 1
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+fi
+
+DAY=$1
+if (( DAY < 1 || DAY > 25 )); then
+  usage
+fi
+
+DIR="day${DAY}"
+if [[ -e $DIR ]]; then
+  >&2 echo "Error: Directory '$DIR' already exists."
+  exit 1
+fi
+
+cargo new --bin $DIR
+cargo add anyhow --package $DIR
