@@ -22,3 +22,11 @@ fi
 
 cargo new --bin "$DIR"
 cargo add anyhow --package "$DIR"
+
+cat << EOF > "${DIR}/src/main.rs"
+use anyhow::Result;
+
+fn main() -> Result<()> {
+    Ok(())
+}
+EOF
