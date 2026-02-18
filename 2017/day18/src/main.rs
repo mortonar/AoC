@@ -177,6 +177,6 @@ impl ParseReg for Vec<&str> {
         if let Ok(n) = token.parse::<isize>() {
             return Ok(Value::Number(n));
         }
-        Err(anyhow!("Cannot parse ins[{i}] as register or number"))
+        bail!("Cannot parse ins[{i}] as register or number")
     }
 }
