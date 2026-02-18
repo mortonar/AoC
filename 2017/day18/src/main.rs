@@ -7,7 +7,7 @@ fn main() -> Result<()> {
     let program = parse_program()?;
     let mut process = Process::default();
     process.execute(&program);
-    println!("Part 1: {}", process.last_played.unwrap());
+    println!("Part 1: {}", process.last_played.ok_or_else(|| anyhow!("No sound played"))?);
 
     let mut c1 = Process::new(0, Mode::Send);
     let mut c2 = Process::new(1, Mode::Send);
