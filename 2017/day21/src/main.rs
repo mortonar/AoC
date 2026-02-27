@@ -69,13 +69,8 @@ trait Apply {
 
 impl Apply for Vec<Rule> {
     fn apply(&mut self, pattern: Pattern) -> Pattern {
-        let block_size = if pattern.size().is_multiple_of(2) {
-            2
-        } else {
-            3
-        };
         pattern
-            .by_blocks(block_size)
+            .by_blocks()
             .into_iter()
             .map(|p| {
                 let rule_idx = self.iter_mut().position(|r| r.matches(&p)).unwrap();
@@ -118,16 +113,22 @@ impl Pattern {
         self.cells.len()
     }
 
-    fn by_blocks(self, block_size: usize) -> Vec<Pattern> {
+    fn block_size(&self) -> usize {
+        if self.size().is_multiple_of(2) { 2 } else { 3 }
+    }
+
+    fn by_blocks(self) -> Vec<Pattern> {
         self.cells
-            .chunks_exact(block_size)
+            .chunks_exact(self.block_size())
             .flat_map(|row_chunk| {
-                (0..self.size()).step_by(block_size).map(|col_start| {
-                    row_chunk
-                        .iter()
-                        .map(|row| row[col_start..col_start + block_size].to_vec())
-                        .collect()
-                })
+                (0..self.size())
+                    .step_by(self.block_size())
+                    .map(|col_start| {
+                        row_chunk
+                            .iter()
+                            .map(|row| row[col_start..col_start + self.block_size()].to_vec())
+                            .collect()
+                    })
             })
             .collect()
     }
