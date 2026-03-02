@@ -4,16 +4,18 @@ use std::io::stdin;
 fn main() -> Result<()> {
     let mut grid_state = parse_input()?;
 
-    let mut grid_state_2 = grid_state.clone();
-    grid_state_2.rules = Rules::Enhanced;
+    println!("Part 1: {}", simulate(&grid_state, 10_000));
 
-    (0..10_000).for_each(|_| grid_state.burst());
-    println!("Part 1: {}", grid_state.infections_caused);
-
-    (0..10_000_000).for_each(|_| grid_state_2.burst());
-    println!("Part 2: {}", grid_state_2.infections_caused);
+    grid_state.rules = Rules::Enhanced;
+    println!("Part 2: {}", simulate(&grid_state, 10_000_000));
 
     Ok(())
+}
+
+fn simulate(grid_state: &GridState, bursts: usize) -> usize {
+    let mut grid_state = grid_state.clone();
+    (0..bursts).for_each(|_| grid_state.burst());
+    grid_state.infections_caused
 }
 
 /// Adjust for padding needed to not run out of bounds
