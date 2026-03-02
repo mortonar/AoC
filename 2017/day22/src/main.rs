@@ -26,16 +26,18 @@ const MID: usize = GRID_SIZE / 2;
 /// Parse what the middle of the grid looks like (puzzle input) and "move" it into the center of a
 /// much larger grid.
 fn parse_input() -> Result<GridState> {
-    let mut middle = Vec::new();
+    let mut middle: Vec<Vec<NodeState>> = Vec::new();
     for line in stdin().lines() {
-        let mut row_cells = Vec::new();
-        for c in line?.trim_end().chars() {
-            row_cells.push(match c {
-                '#' => NodeState::Infected,
-                _ => NodeState::Clean,
-            });
-        }
-        middle.push(row_cells);
+        middle.push(
+            line?
+                .trim_end()
+                .chars()
+                .map(|c| match c {
+                    '#' => NodeState::Infected,
+                    _ => NodeState::Clean,
+                })
+                .collect(),
+        );
     }
 
     // Declare this on the heap because an array will blow the stack
