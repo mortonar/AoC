@@ -114,6 +114,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "day23"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "primes",
+]
+
+[[package]]
 name = "day3"
 version = "0.1.0"
 dependencies = [
@@ -161,3 +169,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
 ]
+
+[[package]]
+name = "primes"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0466ef49edd4a5a4bc9d62804a34e89366810bd8bfc3ed537101e3d099f245c5"
