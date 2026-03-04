@@ -1,13 +1,14 @@
 use anyhow::Result;
+use std::collections::HashMap;
 use std::io::stdin;
 
 fn main() -> Result<()> {
     let components = parse_input()?;
 
-    let (strength, _length) = components.as_slice().strongest_bridge_dfs(0, vec![], false);
+    let strength = components.as_slice().strongest_bridge(0);
     println!("Part 1: {strength}");
 
-    let (strength, _length) = components.as_slice().strongest_bridge_dfs(0, vec![], true);
+    let strength = components.as_slice().longest_bridge(0);
     println!("Part 2: {strength}");
 
     Ok(())
@@ -54,21 +55,45 @@ impl Component {
 }
 
 trait StrongestBridge {
+    fn strongest_bridge(&self, starting_end: usize) -> usize;
+
+    fn longest_bridge(&self, starting_end: usize) -> usize;
+
     fn strongest_bridge_dfs(
         &self,
         current_end: usize,
         chosen: Vec<usize>,
         pick_longest: bool,
+        // (current_end, unchosen components) -> (best bridge from this state)
+        memo: &mut HashMap<(usize, Vec<usize>), (usize, usize)>,
     ) -> (usize, usize);
 }
 
 impl StrongestBridge for &[Component] {
+    fn strongest_bridge(&self, starting_end: usize) -> usize {
+        let (strength, _length) =
+            self.strongest_bridge_dfs(starting_end, vec![], false, &mut HashMap::new());
+        strength
+    }
+
+    fn longest_bridge(&self, starting_end: usize) -> usize {
+        let (strength, _length) =
+            self.strongest_bridge_dfs(starting_end, vec![], true, &mut HashMap::new());
+        strength
+    }
+
     fn strongest_bridge_dfs(
         &self,
         current_end: usize,
         chosen: Vec<usize>,
         pick_longest: bool,
+        memo: &mut HashMap<(usize, Vec<usize>), (usize, usize)>,
     ) -> (usize, usize) {
+        let unchosen: Vec<_> = (0..self.len()).filter(|i| !chosen.contains(i)).collect();
+        if let Some(cached) = memo.get(&(current_end, unchosen.clone())) {
+            return *cached;
+        }
+
         let can_choose: Vec<_> = self
             .iter()
             .enumerate()
@@ -90,12 +115,12 @@ impl StrongestBridge for &[Component] {
             );
         }
 
-        can_choose
+        let best = can_choose
             .iter()
             .map(|(i, new_end)| {
                 let mut chosen = chosen.clone();
                 chosen.push(*i);
-                self.strongest_bridge_dfs(*new_end, chosen, pick_longest)
+                self.strongest_bridge_dfs(*new_end, chosen, pick_longest, memo)
             })
             .max_by(|(s1, l1), (s2, l2)| {
                 if pick_longest {
@@ -104,6 +129,10 @@ impl StrongestBridge for &[Component] {
                     s1.cmp(s2)
                 }
             })
-            .unwrap()
+            .unwrap();
+
+        memo.insert((current_end, unchosen), best);
+
+        best
     }
 }
