@@ -1,0 +1,33 @@
+#!/bin/bash
+
+function usage {
+  >&2 echo "Usage: $0 <year>"
+  exit 1
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+fi
+
+YEAR=$1
+
+if [[ ! "${YEAR}" =~ [[:digit:]]{4} ]]; then
+  >&2 echo "Error: Script must be called with a year value (e.g. 2026)"
+  exit 1
+fi
+
+SCRIPT_DIR=$(dirname $0)
+YEAR_DIR="${SCRIPT_DIR}/../${YEAR}"
+
+if [[ -d "$YEAR_DIR" ]]; then
+  >&2 echo "Error: Directory '$DIR' already exists."
+  exit 1
+fi
+
+mkdir "${YEAR_DIR}"
+
+cat << EOF > "${YEAR_DIR}/Cargo.toml"
+[workspace]
+resolver = "2"
+members = []
+EOF

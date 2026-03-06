@@ -14,6 +14,11 @@ if (( DAY < 1 || DAY > 25 )); then
   usage
 fi
 
+if [[ ! "$(basename $PWD)" =~ [[:digit:]]{4} ]]; then
+  >&2 echo "Error: Script must be called from within a year directory (e.g. 2026)"
+  exit 1
+fi
+
 DIR="day${DAY}"
 if [[ -e $DIR ]]; then
   >&2 echo "Error: Directory '$DIR' already exists."
