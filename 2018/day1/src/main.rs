@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Error, Result};
 use std::collections::HashSet;
 use std::io::stdin;
 
@@ -24,6 +24,6 @@ fn main() -> Result<()> {
 fn parse_input() -> Result<Vec<isize>> {
     stdin()
         .lines()
-        .map(|l| l?.trim_end().parse::<isize>().map_err(Into::into))
+        .map(|l| l?.trim_end().parse::<isize>().map_err(Error::from))
         .collect()
 }
