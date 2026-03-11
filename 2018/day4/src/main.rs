@@ -7,9 +7,21 @@ use std::str::FromStr;
 fn main() -> Result<()> {
     let mut records = parse_input()?;
     records.sort_by(|r1, r2| r1.timestamp.cmp(&r2.timestamp));
-    dbg!(&records);
+    // Guard ID -> Vec of midnight minutes asleep
+    let guard_totals = midnight_minutes_asleep(&records);
 
-    // TODO Get guard asleep the most
+    let sleepiest = guard_totals.iter().max_by_key(|(_id, v)| v.len()).unwrap();
+    println!("Part 1: {}", sleepiest.0 * sleepiest.1.mode());
+
+    let most_regular = guard_totals
+        .iter()
+        .max_by_key(|(_id, v)| {
+            let mode = v.mode();
+            v.iter().filter(|m| **m == mode).count()
+        })
+        .unwrap();
+    println!("Part 2: {}", most_regular.0 * most_regular.1.mode());
+
     Ok(())
 }
 
@@ -23,7 +35,7 @@ struct Record {
     event: Event,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Timestamp {
     year: u64,
     month: u64,
@@ -39,18 +51,27 @@ enum Event {
     Wake,
 }
 
-fn part1(records: &[Record]) {
+// Calculate: Guard ID -> Vec of midnight minutes asleep
+fn midnight_minutes_asleep(records: &[Record]) -> HashMap<u64, Vec<u64>> {
     let mut guard_totals: HashMap<u64, Vec<u64>> = HashMap::new();
     let mut guard_id = 0;
-    let mut sleep_start = None;
-    for record in records.iter() {
+    let mut sleep_start: usize = 0;
+    for (i, record) in records.iter().enumerate() {
         match record.event {
             Event::BeginShift(id) => guard_id = id,
-            Event::Sleep => sleep_start = Some(record.timestamp),
-            Event::Wake =>
-                _ => {}
+            Event::Sleep => sleep_start = i,
+            Event::Wake => {
+                let mut midnight_mins_asleep = records[sleep_start]
+                    .timestamp
+                    .midnight_mins(&records[i].timestamp);
+                guard_totals
+                    .entry(guard_id)
+                    .and_modify(|mins| mins.append(&mut midnight_mins_asleep))
+                    .or_insert(midnight_mins_asleep);
+            }
         }
     }
+    guard_totals
 }
 
 impl FromStr for Record {
@@ -121,5 +142,43 @@ impl Ord for Timestamp {
             .then_with(|| self.day.cmp(&other.day))
             .then_with(|| self.hour.cmp(&other.hour))
             .then_with(|| self.minute.cmp(&other.minute))
+    }
+}
+
+impl Timestamp {
+    /// Minutes elapsed in the midnight hour between two timestamps (other >= self)
+    fn midnight_mins(&self, other: &Timestamp) -> Vec<u64> {
+        // "Walk" self to other and return the midnight minutes
+        let mut mins = Vec::new();
+        let mut current = self.clone();
+        while current.cmp(other) != Ordering::Equal {
+            if current.hour == 0 {
+                mins.push(current.minute);
+            }
+            current.tick();
+        }
+        mins
+    }
+
+    fn tick(&mut self) {
+        self.minute += 1;
+        if self.minute > 59 {
+            self.minute = 0;
+            self.hour += 1;
+        }
+        // Ignore days and beyond
+    }
+}
+
+trait Mode {
+    fn mode(&self) -> u64;
+}
+
+impl Mode for Vec<u64> {
+    fn mode(&self) -> u64 {
+        let mut frequencies = HashMap::new();
+        self.iter()
+            .for_each(|&f| *frequencies.entry(f).or_insert(1) += 1);
+        *frequencies.iter().max_by_key(|(_min, occ)| *occ).unwrap().0
     }
 }
