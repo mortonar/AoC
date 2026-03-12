@@ -34,17 +34,15 @@ struct Polymer {
 impl Polymer {
     /// Return the fully reacted version of this Polymer
     fn fully_react(&self) -> Self {
-        let mut stack = Vec::new();
-
         // "Collapse" from left to right with a stack so we only need one pass
-        self.units.iter().fold(&mut stack, |stack, &u| {
+        let mut stack = Vec::new();
+        self.units.iter().for_each(|&u| {
             // In ASCII table, lower and upper case versions of each letter have diff of 32
             if stack.is_empty() || (*stack.last().unwrap() as u32) ^ (u as u32) != 32 {
                 stack.push(u);
             } else {
                 stack.pop();
             }
-            stack
         });
 
         Self { units: stack }
