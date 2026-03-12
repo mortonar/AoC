@@ -34,34 +34,24 @@ struct Polymer {
 impl Polymer {
     /// Return the fully reacted version of this Polymer
     fn fully_react(&self) -> Self {
-        let mut units = self.units.clone();
+        let mut stack = Vec::new();
 
-        loop {
-            let mut i = 0;
-            let mut reaction = false;
-            while units.len() > 1 && i < units.len() - 1 {
-                if self.do_react(units[i], units[i + 1]) {
-                    units.remove(i);
-                    units.remove(i);
-                    reaction = true;
-                } else {
-                    i += 1;
-                }
+        // "Collapse" from left to right with a stack so we only need one pass
+        self.units.iter().fold(&mut stack, |stack, &u| {
+            // In ASCII table, lower and upper case versions of each letter have diff of 32
+            if stack.is_empty() || (*stack.last().unwrap() as u32) ^ (u as u32) != 32 {
+                stack.push(u);
+            } else {
+                stack.pop();
             }
-            if !reaction {
-                break;
-            }
-        }
+            stack
+        });
 
-        Self { units }
+        Self { units: stack }
     }
 
     fn len(&self) -> usize {
         self.units.len()
-    }
-
-    fn do_react(&self, c1: char, c2: char) -> bool {
-        c1.eq_ignore_ascii_case(&c2) && c1.is_ascii_lowercase() != c2.is_ascii_lowercase()
     }
 
     fn unique_units(&self) -> HashSet<char> {
