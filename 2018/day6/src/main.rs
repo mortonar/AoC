@@ -5,19 +5,20 @@ use std::io::stdin;
 
 fn main() -> Result<()> {
     let coords = parse_input()?;
-    let threshold: usize = env::args().nth(1).unwrap_or("10000".to_string()).parse()?;
+    let safe_threshold: usize = env::args().nth(1).unwrap_or("10000".to_string()).parse()?;
 
     // * Iterate over a "bounding box" of the coords ((min-c + 1, min-r + 1) to (max-c + 1, max-r + 1))
     // * Mark each coord in the box with the original coord it belongs to (closest to that owner and no other coord is tied in dist)
     // * Get the largest area but discounting the "infinite" ones (areas with coords on bounding box edges)
-    let (max_col, max_row, min_col, min_row) =
-        coords
-            .iter()
-            .fold((0, 0, 0, 0), |(max_c, max_r, min_c, min_r), &(x, y)| {
-                (max_c.max(x), max_r.max(y), min_c.min(x), min_r.min(y))
-            });
-    // Original cord -> # of cells within its area
+    let (max_col, max_row, min_col, min_row) = coords.iter().fold(
+        (0, 0, usize::MAX, usize::MAX),
+        |(max_c, max_r, min_c, min_r), &(x, y)| {
+            (max_c.max(x), max_r.max(y), min_c.min(x), min_r.min(y))
+        },
+    );
+    // Original cord -> cells within its area
     let mut areas: HashMap<(usize, usize), Vec<(usize, usize)>> = HashMap::new();
+    // Size of the safe area
     let mut safe_area = 0;
     for col in min_col..max_col {
         for row in min_row..max_row {
@@ -32,9 +33,9 @@ fn main() -> Result<()> {
 
             if coords
                 .iter()
-                .map(|(c, r)| c.abs_diff(col) + r.abs_diff(row))
+                .map(|c| c.manhattan_dist((row, col)))
                 .sum::<usize>()
-                < threshold
+                < safe_threshold
             {
                 safe_area += 1;
             }
@@ -80,16 +81,23 @@ trait Owner {
 impl Owner for HashSet<(usize, usize)> {
     fn owner(&self, coord: (usize, usize)) -> Option<(usize, usize)> {
         // ((c, r), dist from coord)
-        let mut distances: Vec<_> = self
-            .iter()
-            .map(|(c, r)| ((c, r), c.abs_diff(coord.0) + r.abs_diff(coord.1)))
-            .collect();
+        let mut distances: Vec<_> = self.iter().map(|&c| (c, c.manhattan_dist(coord))).collect();
+        // Sort by dist from coord
         distances.sort_by(|cd1, cd2| cd1.1.cmp(&cd2.1));
         if distances[0].1 != distances[1].1 {
-            let c = distances[0].0;
-            Some((*c.0, *c.1))
+            Some(distances[0].0)
         } else {
             None
         }
+    }
+}
+
+trait Manhattan {
+    fn manhattan_dist(&self, other: (usize, usize)) -> usize;
+}
+
+impl Manhattan for (usize, usize) {
+    fn manhattan_dist(&self, other: (usize, usize)) -> usize {
+        self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
     }
 }
