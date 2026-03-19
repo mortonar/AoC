@@ -1,84 +1,97 @@
 use anyhow::Result;
-use std::collections::HashMap;
+use std::cmp::Ordering;
 use std::env;
+use std::fmt::{Display, Formatter};
 
-const MAX: isize = 300;
+const MAX: usize = 300;
 
 fn main() -> Result<()> {
     let serial: isize = env::args().nth(1).unwrap_or("5093".to_string()).parse()?;
 
-    // (X,Y,S) -> total power of cells in a SxS square starting at top-left corner X,Y
-    let mut cache = HashMap::new();
+    // Looking over solutions for this second iteration pointed me to:
+    // https://en.wikipedia.org/wiki/Summed-area_table
+    // https://www.reddit.com/r/adventofcode/comments/a53r6i/comment/ebjogd7/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+    // Using a summed-area table takes the total-power calculation of a square to a constant time
+    // which speeds this up from ~60s to ~0.70s.
+    let mut sa_table = vec![vec![0; MAX + 1]; MAX + 1];
+    for x in 1..=MAX {
+        for y in 1..=MAX {
+            sa_table[x][y] = (x, y).power_level(serial) + sa_table[x - 1][y] + sa_table[x][y - 1]
+                - sa_table[x - 1][y - 1];
+        }
+    }
 
-    let (corner, _power) = largest_power(serial, 3, &mut cache);
-    println!("Part 1: {},{}", corner.0, corner.1);
+    let mut best = Square::default();
+    let mut best_3x3 = Square::default();
+    for square in 1..=MAX {
+        for x in square..=MAX {
+            for y in square..=MAX {
+                let total_power =
+                    sa_table[x][y] - sa_table[x - square][y] - sa_table[x][y - square]
+                        + sa_table[x - square][y - square];
+                // Calculate the top left corner of the square
+                let coords = (x - square + 1, y - square + 1);
+                let new = Square {
+                    total_power,
+                    coords,
+                    square,
+                };
+                best = best.max(new.clone());
+                if square == 3 {
+                    best_3x3 = best_3x3.max(new);
+                }
+            }
+        }
+    }
 
-    let (square, (corner, _power)) = (1..=300)
-        .map(|square| (square, largest_power(serial, square, &mut cache)))
-        .max_by(|(_sq1, (_c1, p1)), (_sq2, (_c2, p2))| p1.cmp(p2))
-        .unwrap();
-    println!("Part 2: {},{},{}", corner.0, corner.1, square,);
+    println!("Part 1: {}", best_3x3);
+    println!("Part 2: {}", best);
 
     Ok(())
-}
-
-fn largest_power(
-    serial: isize,
-    square: isize,
-    cache: &mut HashMap<(isize, isize, isize), isize>,
-) -> ((isize, isize), isize) {
-    (1..=MAX)
-        .flat_map(|x| (1..=MAX).map(move |y| (x, y)))
-        .filter(|&(x, y)| x < MAX - square + 2 && y < MAX - square + 2)
-        .map(|(x_tl, y_tl)| {
-            (
-                (x_tl, y_tl),
-                power_level((x_tl, y_tl), square, serial, cache),
-            )
-        })
-        .max_by(|(_c1, p_1), (_c_2, p_2)| p_1.cmp(p_2))
-        .unwrap()
-}
-
-fn power_level(
-    (x_tl, y_tl): (isize, isize),
-    square: isize,
-    serial: isize,
-    cache: &mut HashMap<(isize, isize, isize), isize>,
-) -> isize {
-    if let Some(cached) = cache.get(&(x_tl, y_tl, square)) {
-        *cached
-    } else if let Some(cached) = cache.get(&(x_tl, y_tl, square - 1)) {
-        // Take "inside" square (S - 1) and add the outside sides (right column and bottom row)
-        let right_col = (y_tl..=y_tl + square - 1).map(|y| (x_tl + square - 1, y));
-        let bottom_row = (x_tl..=x_tl + square - 1).map(|x| (x, y_tl + square - 1));
-        let new = right_col
-            .chain(bottom_row)
-            .map(|fc| fc.power_level(serial))
-            .sum::<isize>()
-            // Don't double count bottom right corner
-            - (x_tl + square - 1, y_tl + square - 1).power_level(serial)
-            + cached;
-        cache.insert((x_tl, y_tl, square), new);
-        new
-    } else {
-        let new = (x_tl..=x_tl + square - 1)
-            .flat_map(|x| (y_tl..=y_tl + square - 1).map(move |y| (x, y)))
-            .map(|fc| fc.power_level(serial))
-            .sum::<isize>();
-        cache.insert((x_tl, y_tl, square), new);
-        new
-    }
 }
 
 trait FuelCell {
     fn power_level(&self, serial: isize) -> isize;
 }
 
-impl FuelCell for (isize, isize) {
+impl FuelCell for (usize, usize) {
     fn power_level(&self, serial: isize) -> isize {
-        let rack_id = self.0 + 10;
-        let pow = (rack_id * self.1 + serial) * rack_id;
+        let (x, y) = (self.0 as isize, self.1 as isize);
+        let rack_id = x + 10;
+        let pow = (rack_id * y + serial) * rack_id;
         ((pow / 100) % 10) - 5
+    }
+}
+
+#[derive(Default, Clone)]
+struct Square {
+    total_power: isize,
+    coords: (usize, usize),
+    square: usize,
+}
+
+impl Eq for Square {}
+
+impl PartialEq<Self> for Square {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other).is_eq()
+    }
+}
+
+impl PartialOrd<Self> for Square {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Square {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.total_power.cmp(&other.total_power)
+    }
+}
+
+impl Display for Square {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{},{},{}", self.coords.0, self.coords.1, self.square)
     }
 }
