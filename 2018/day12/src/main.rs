@@ -55,21 +55,16 @@ impl Garden {
             *self.pots.iter().min().unwrap() - 2,
             *self.pots.iter().max().unwrap() + 2,
         );
-        let mut updates = Vec::with_capacity((max - min + 1) as usize);
+        let mut new_pots = HashSet::with_capacity((max - min + 1) as usize);
         for i in min..=max {
             let pattern: Vec<_> = (i - 2..=i + 2)
                 .map(|idx| self.pots.contains(&idx))
                 .collect();
-            let plant = *self.rules.get(&pattern).unwrap_or(&false);
-            updates.push((i, plant));
-        }
-        for (i, plant) in updates {
-            if plant {
-                self.pots.insert(i);
-            } else {
-                self.pots.remove(&i);
+            if *self.rules.get(&pattern).unwrap_or(&false) {
+                new_pots.insert(i);
             }
         }
+        self.pots = new_pots;
     }
 
     fn summed_pots(&self) -> isize {
