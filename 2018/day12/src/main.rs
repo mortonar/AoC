@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::stdin;
 
@@ -24,7 +24,7 @@ fn parse_input() -> Result<Garden> {
     let pots = tokens[2]
         .chars()
         .enumerate()
-        .map(|(i, c)| (i as isize, c == '#'))
+        .filter_map(|(i, c)| if c == '#' { Some(i as isize) } else { None })
         .collect();
 
     let _blank = lines.next().unwrap()?;
@@ -43,8 +43,8 @@ fn parse_input() -> Result<Garden> {
 
 #[derive(Debug)]
 struct Garden {
-    // idx -> true = plant | false = no plant | no idx = no plant
-    pots: HashMap<isize, bool>,
+    // indices with plants
+    pots: HashSet<isize>,
     rules: HashMap<Vec<bool>, bool>,
 }
 
@@ -52,20 +52,20 @@ impl Garden {
     fn grow(&mut self) {
         // +/-2 to apply rules and grow the pots outward
         let (min, max) = (
-            *self.pots.keys().min().unwrap() - 2,
-            *self.pots.keys().max().unwrap() + 2,
+            *self.pots.iter().min().unwrap() - 2,
+            *self.pots.iter().max().unwrap() + 2,
         );
         let mut updates = Vec::with_capacity((max - min + 1) as usize);
         for i in min..=max {
             let pattern: Vec<_> = (i - 2..=i + 2)
-                .map(|idx| *self.pots.get(&idx).unwrap_or(&false))
+                .map(|idx| self.pots.contains(&idx))
                 .collect();
             let plant = *self.rules.get(&pattern).unwrap_or(&false);
             updates.push((i, plant));
         }
         for (i, plant) in updates {
             if plant {
-                self.pots.insert(i, true);
+                self.pots.insert(i);
             } else {
                 self.pots.remove(&i);
             }
@@ -73,9 +73,6 @@ impl Garden {
     }
 
     fn summed_pots(&self) -> isize {
-        self.pots
-            .iter()
-            .map(|(pot_num, plant)| if *plant { *pot_num } else { 0 })
-            .sum()
+        self.pots.iter().sum()
     }
 }
