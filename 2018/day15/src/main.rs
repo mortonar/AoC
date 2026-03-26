@@ -5,10 +5,20 @@ use std::hash::Hash;
 use std::io::stdin;
 
 fn main() -> Result<()> {
-    let mut cave = parse_input()?;
+    let original = parse_input()?;
 
-    let outcome = cave.combat();
+    let mut cave = original.clone();
+    let outcome = cave.combat(false)?;
     println!("Part 1: {outcome} ({})", cave.combat_rounds);
+
+    for ap in 4.. {
+        let mut cave = original.clone();
+        cave.buff_elves(ap);
+        if let Ok(outcome) = cave.combat(true) {
+            println!("Part 2: {outcome} ({})", cave.combat_rounds);
+            break;
+        }
+    }
 
     Ok(())
 }
@@ -40,7 +50,7 @@ fn parse_input() -> Result<Cave> {
     })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Cave {
     tiles: Vec<Vec<char>>,
     units: Vec<Unit>,
@@ -48,10 +58,12 @@ struct Cave {
 }
 
 impl Cave {
-    fn combat(&mut self) -> usize {
-        // self.print();
-
+    fn combat(&mut self, no_elf_losses: bool) -> Result<usize> {
         'outer: loop {
+            if no_elf_losses && self.lost_elf() {
+                bail!("Lost an elf")
+            }
+
             self.units.retain(|u| !u.is_dead());
 
             let types: HashSet<_> = self.units.iter().map(|u| u.u_type).collect();
@@ -79,38 +91,19 @@ impl Cave {
             }
 
             self.combat_rounds += 1;
-            // self.print();
         }
 
-        self.combat_rounds
+        if no_elf_losses && self.lost_elf() {
+            bail!("Lost an elf")
+        }
+
+        Ok(self.combat_rounds
             * self
                 .units
                 .iter()
                 .filter(|u| !u.is_dead())
                 .map(|u| u.hp as usize)
-                .sum::<usize>()
-    }
-
-    fn print(&mut self) {
-        self.units
-            .sort_by(|u1, u2| u1.row.cmp(&u2.row).then_with(|| u1.column.cmp(&u2.column)));
-
-        println!("Round: #{}", self.combat_rounds);
-        for (i, row) in self.tiles.iter().enumerate() {
-            for (j, _t) in row.iter().enumerate() {
-                if let Some(u) = self.units.iter().find(|u| u.row == i && u.column == j) {
-                    print!("{}", u.to_char());
-                } else {
-                    print!("{}", self.tiles[i][j]);
-                }
-            }
-            print!(" ");
-            for u in self.units.iter().filter(|u| u.row == i) {
-                print!("{}({}) ", u.to_char(), u.hp);
-            }
-            println!();
-        }
-        println!("------------------------------");
+                .sum::<usize>())
     }
 
     fn find_all_alive_targets(&self, unit_idx: usize) -> Vec<usize> {
@@ -149,10 +142,10 @@ impl Cave {
         let mut found_distance = None;
         let mut found_steps = Vec::new();
         while let Some((pos, first_step, dist)) = queue.pop_front() {
-            if let Some(fd) = found_distance {
-                if dist > fd {
-                    break;
-                }
+            if let Some(fd) = found_distance
+                && dist > fd
+            {
+                break;
             }
             if possible_dests.contains(&pos) {
                 found_distance = Some(dist);
@@ -224,9 +217,22 @@ impl Cave {
         let unit = &self.units[unit_idx];
         (unit.row, unit.column)
     }
+
+    fn lost_elf(&self) -> bool {
+        self.units
+            .iter()
+            .any(|u| u.is_dead() && u.u_type == UnitType::Elf)
+    }
+
+    fn buff_elves(&mut self, new_ap: isize) {
+        self.units
+            .iter_mut()
+            .filter(|u| u.u_type == UnitType::Elf)
+            .for_each(|u| u.ap = new_ap);
+    }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Unit {
     row: usize,
     column: usize,
@@ -253,17 +259,6 @@ impl Unit {
     fn adjacent_spaces(&self) -> Vec<(usize, usize)> {
         (self.row, self.column).adjacent_spaces()
     }
-
-    fn to_char(&self) -> char {
-        if self.is_dead() {
-            'X'
-        } else {
-            match self.u_type {
-                UnitType::Elf => 'E',
-                UnitType::Goblin => 'G',
-            }
-        }
-    }
 }
 
 trait AdjacentSpaces {
@@ -272,11 +267,12 @@ trait AdjacentSpaces {
 
 impl AdjacentSpaces for (usize, usize) {
     fn adjacent_spaces(&self) -> Vec<(usize, usize)> {
+        // Reading order: up, left, right, down
         vec![
             (self.0 - 1, self.1),
+            (self.0, self.1 - 1),
             (self.0, self.1 + 1),
             (self.0 + 1, self.1),
-            (self.0, self.1 - 1),
         ]
     }
 }
