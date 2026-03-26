@@ -9,13 +9,13 @@ fn main() -> Result<()> {
 
     let mut cave = original.clone();
     let outcome = cave.combat(false)?;
-    println!("Part 1: {outcome} ({})", cave.combat_rounds);
+    println!("Part 1: {outcome}");
 
     for ap in 4.. {
         let mut cave = original.clone();
         cave.buff_elves(ap);
         if let Ok(outcome) = cave.combat(true) {
-            println!("Part 2: {outcome} ({})", cave.combat_rounds);
+            println!("Part 2: {outcome}");
             break;
         }
     }
