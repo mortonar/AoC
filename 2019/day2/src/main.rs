@@ -38,38 +38,47 @@ fn parse_input() -> Result<IntcodeComputer> {
         .map(|n| n.parse::<usize>().map_err(Error::from))
         .collect::<Result<_, _>>()?;
 
-    Ok(IntcodeComputer { memory })
+    Ok(IntcodeComputer { ip: 0, memory })
 }
 
 #[derive(Debug, Clone)]
 struct IntcodeComputer {
+    ip: usize,
     memory: Vec<usize>,
 }
 
 impl IntcodeComputer {
     fn run(&mut self) {
-        let mut ip = 0;
-
         loop {
-            let opcode = self.memory[ip];
-            match opcode {
-                1 => self.bin_op(ip, |p1, p2| p1 + p2),
-                2 => self.bin_op(ip, |p1, p2| p1 * p2),
+            match self.opcode() {
+                1 => self.bin_op(|p1, p2| p1 + p2),
+                2 => self.bin_op(|p1, p2| p1 * p2),
                 99 => break,
-                _ => panic!("Unknown opcode {opcode}"),
+                op => panic!("Unknown opcode {op}"),
             }
 
-            ip += 4;
+            self.next_ins();
         }
     }
 
-    fn bin_op<F>(&mut self, ip: usize, op: F)
+    fn opcode(&self) -> usize {
+        self[self.ip]
+    }
+
+    fn next_ins(&mut self) {
+        self.ip += 4;
+    }
+
+    fn params(&self) -> [usize; 3] {
+        [self[self[self.ip + 1]], self[self[self.ip + 2]], self[self.ip + 3]]
+    }
+
+    fn bin_op<F>(&mut self, op: F)
     where
         F: Fn(usize, usize) -> usize,
     {
-        let result = op(self[self[ip + 1]], self[self[ip + 2]]);
-        let assign_to = self[ip + 3];
-        self[assign_to] = result;
+        let [p1, p2, p3] = self.params();
+        self[p3] = op(p1, p2);
     }
 }
 
