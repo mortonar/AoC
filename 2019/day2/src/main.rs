@@ -5,6 +5,8 @@ fn main() -> Result<()> {
     let computer = parse_input()?;
 
     let mut p1 = computer.clone();
+    p1[1] = 12;
+    p1[2] = 2;
     p1.run();
     println!("Part 1: {}", p1[0]);
 
