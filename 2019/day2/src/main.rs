@@ -70,7 +70,11 @@ impl IntcodeComputer {
     }
 
     fn params(&self) -> [usize; 3] {
-        [self[self[self.ip + 1]], self[self[self.ip + 2]], self[self.ip + 3]]
+        [
+            self[self[self.ip + 1]],
+            self[self[self.ip + 2]],
+            self[self.ip + 3],
+        ]
     }
 
     fn bin_op<F>(&mut self, op: F)
