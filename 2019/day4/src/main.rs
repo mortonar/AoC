@@ -31,10 +31,8 @@ trait Password {
 impl Password for usize {
     fn is_valid(&self, small_groups: bool) -> bool {
         let mut double = false;
-        let mut prev = *self % 10;
+        let (mut prev, mut num) = (*self % 10, *self / 10);
         let mut seq = 1;
-
-        let mut num = *self / 10;
 
         while num > 0 {
             let digit = num % 10;
