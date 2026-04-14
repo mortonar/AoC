@@ -54,8 +54,6 @@ impl Password for usize {
         }
 
         // Handle last digit == to prev
-        double = double || if small_groups { seq == 2 } else { seq > 1 };
-
-        double
+        double || if small_groups { seq == 2 } else { seq > 1 }
     }
 }
