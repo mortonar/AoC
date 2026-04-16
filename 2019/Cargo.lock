@@ -45,6 +45,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "day6"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "text_io",
+]
+
+[[package]]
 name = "text_io"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
