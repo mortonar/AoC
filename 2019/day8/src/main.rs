@@ -32,9 +32,8 @@ fn main() -> Result<()> {
     for row in image.iter() {
         for pixel in row.iter() {
             let c = match pixel {
-                Color::Black => " ",
                 Color::White => "#",
-                Color::Transparent => " ",
+                _ => " ",
             };
             print!("{c}");
         }
