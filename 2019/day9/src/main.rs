@@ -1,7 +1,7 @@
-use anyhow::{Error, Result};
+use anyhow::{Result, anyhow};
 use std::collections::VecDeque;
 use std::iter::successors;
-use std::ops::{Div, Index, IndexMut, Rem};
+use std::ops::{Div, Rem};
 
 fn main() -> Result<()> {
     let program = parse_input()?;
@@ -16,42 +16,22 @@ fn parse_input() -> Result<Program> {
     let mut line = String::new();
     std::io::stdin().read_line(&mut line)?;
 
-    let program: Vec<_> = line
-        .trim()
-        .split(",")
-        .map(|n| n.parse().map_err(Error::from))
-        .collect::<Result<_, _>>()?;
-    Ok(program)
+    line.trim().split(',').map(|n| Ok(n.parse()?)).collect()
 }
 
 fn run_boost(program: &Program, input: isize) -> Result<isize> {
-    let mut computer = IntcodeComputer::new(program, IOQueue::new(input));
+    let mut computer = IntcodeComputer::new(program);
+    computer.input.push_back(input);
     computer.run();
-    computer.output.pop().ok_or(Error::msg("No output"))
+    computer.output.pop_front().ok_or(anyhow!("No output"))
 }
 
 type Program = Vec<isize>;
 
-// Generic Queue type to enforce FIFO push/pop semantics.
-#[derive(Debug, Clone, Default)]
-struct IOQueue<T> {
-    queue: VecDeque<T>,
-}
-
-impl<T: Default> IOQueue<T> {
-    fn new(value: T) -> Self {
-        Self {
-            queue: VecDeque::from(vec![value]),
-        }
-    }
-
-    fn push(&mut self, input: T) {
-        self.queue.push_back(input);
-    }
-
-    fn pop(&mut self) -> Option<T> {
-        self.queue.pop_front()
-    }
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RunState {
+    Halted,
+    AwaitingInput,
 }
 
 #[derive(Debug, Clone)]
@@ -59,12 +39,12 @@ struct IntcodeComputer {
     ip: usize,
     relative_base: isize,
     memory: Vec<isize>,
-    input: IOQueue<isize>,
-    output: IOQueue<isize>,
+    input: VecDeque<isize>,
+    output: VecDeque<isize>,
 }
 
 impl IntcodeComputer {
-    fn new(program: &Program, input: IOQueue<isize>) -> Self {
+    fn new(program: &Program) -> Self {
         // Allocate and zero-out extra main memory to allow writes past the program's end
         let mut memory = program.clone();
         memory.resize(program.len() * 50, 0);
@@ -73,40 +53,36 @@ impl IntcodeComputer {
             ip: 0,
             relative_base: 0,
             memory,
-            input,
-            output: IOQueue::default(),
+            input: VecDeque::new(),
+            output: VecDeque::new(),
         }
     }
 
-    // Returns true for halted, false otherwise (e.g. waiting on input)
-    fn run(&mut self) -> bool {
+    fn run(&mut self) -> RunState {
         loop {
             match self.decode() {
                 Instruction::Add(params) => {
-                    let val1 = params[0].value(self);
-                    let val2 = params[1].value(self);
+                    let result = params[0].value(self) + params[1].value(self);
                     let addr = params[2].write_addr(self);
-                    self[addr] = val1 + val2;
+                    self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
                 Instruction::Multiply(params) => {
-                    let val1 = params[0].value(self);
-                    let val2 = params[1].value(self);
+                    let result = params[0].value(self) * params[1].value(self);
                     let addr = params[2].write_addr(self);
-                    self[addr] = val1 * val2;
+                    self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
                 Instruction::Input(param) => {
-                    if let Some(input) = self.input.pop() {
-                        let addr = param.write_addr(self);
-                        self[addr] = input;
-                        self.ip += 2;
-                    } else {
-                        return false;
-                    }
+                    let Some(input) = self.input.pop_front() else {
+                        return RunState::AwaitingInput;
+                    };
+                    let addr = param.write_addr(self);
+                    self.memory[addr] = input;
+                    self.ip += 2;
                 }
                 Instruction::Output(param) => {
-                    self.output.push(param.value(self));
+                    self.output.push_back(param.value(self));
                     self.ip += 2;
                 }
                 Instruction::JumpIfTrue(params) => {
@@ -124,32 +100,28 @@ impl IntcodeComputer {
                     }
                 }
                 Instruction::LessThan(params) => {
-                    let val1 = params[0].value(self);
-                    let val2 = params[1].value(self);
+                    let result = isize::from(params[0].value(self) < params[1].value(self));
                     let addr = params[2].write_addr(self);
-                    self[addr] = if val1 < val2 { 1 } else { 0 };
+                    self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
                 Instruction::Equals(params) => {
-                    let val1 = params[0].value(self);
-                    let val2 = params[1].value(self);
+                    let result = isize::from(params[0].value(self) == params[1].value(self));
                     let addr = params[2].write_addr(self);
-                    self[addr] = if val1 == val2 { 1 } else { 0 };
+                    self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
                 Instruction::AdjustRelativeBase(param) => {
                     self.relative_base += param.value(self);
                     self.ip += 2;
                 }
-                Instruction::Halt => {
-                    return true;
-                }
+                Instruction::Halt => return RunState::Halted,
             }
         }
     }
 
     fn decode(&self) -> Instruction {
-        let instruction = self[self.ip];
+        let instruction = self.memory[self.ip];
         let mut mode_digits =
             successors(Some(instruction.div_rem(100)), |dr| Some(dr.0.div_rem(10)));
 
@@ -158,18 +130,20 @@ impl IntcodeComputer {
         let mut params = mode_digits
             .map(|dr| Mode::from(dr.1))
             .enumerate()
-            .map(|(i, mode)| (self[self.ip + i + 1], mode))
-            .map(|(value, mode)| Parameter { value, mode });
+            .map(|(i, mode)| Parameter {
+                value: self.memory[self.ip + i + 1],
+                mode,
+            });
 
         match opcode {
-            1 => Instruction::Add(take_params::<3>(&mut params)),
-            2 => Instruction::Multiply(take_params::<3>(&mut params)),
+            1 => Instruction::Add(take_params(&mut params)),
+            2 => Instruction::Multiply(take_params(&mut params)),
             3 => Instruction::Input(params.next().unwrap()),
             4 => Instruction::Output(params.next().unwrap()),
-            5 => Instruction::JumpIfTrue(take_params::<2>(&mut params)),
-            6 => Instruction::JumpIfFalse(take_params::<2>(&mut params)),
-            7 => Instruction::LessThan(take_params::<3>(&mut params)),
-            8 => Instruction::Equals(take_params::<3>(&mut params)),
+            5 => Instruction::JumpIfTrue(take_params(&mut params)),
+            6 => Instruction::JumpIfFalse(take_params(&mut params)),
+            7 => Instruction::LessThan(take_params(&mut params)),
+            8 => Instruction::Equals(take_params(&mut params)),
             9 => Instruction::AdjustRelativeBase(params.next().unwrap()),
             99 => Instruction::Halt,
             unknown => panic!("Unknown opcode {unknown}"),
@@ -185,33 +159,13 @@ fn take_params<const N: usize>(params: &mut impl Iterator<Item = Parameter>) -> 
     })
 }
 
-trait DivRem
-where
-    Self: Sized,
-{
+trait DivRem: Sized {
     fn div_rem(&self, divisor: Self) -> (Self, Self);
 }
 
-impl<T> DivRem for T
-where
-    T: Copy + Div<Output = T> + Rem<Output = T>,
-{
+impl<T: Copy + Div<Output = T> + Rem<Output = T>> DivRem for T {
     fn div_rem(&self, divisor: Self) -> (Self, Self) {
         (*self / divisor, *self % divisor)
-    }
-}
-
-impl Index<usize> for IntcodeComputer {
-    type Output = isize;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.memory[index]
-    }
-}
-
-impl IndexMut<usize> for IntcodeComputer {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.memory[index]
     }
 }
 
@@ -229,7 +183,7 @@ enum Instruction {
     Halt,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 struct Parameter {
     value: isize,
     mode: Mode,
@@ -238,13 +192,13 @@ struct Parameter {
 impl Parameter {
     fn value(&self, computer: &IntcodeComputer) -> isize {
         match self.mode {
-            Mode::Position => computer[self.value as usize],
+            Mode::Position => computer.memory[self.value as usize],
             Mode::Immediate => self.value,
-            Mode::Relative => computer[(self.value + computer.relative_base) as usize],
+            Mode::Relative => computer.memory[(self.value + computer.relative_base) as usize],
         }
     }
 
-    fn write_addr(&self, computer: &mut IntcodeComputer) -> usize {
+    fn write_addr(&self, computer: &IntcodeComputer) -> usize {
         match self.mode {
             Mode::Position => self.value as usize,
             Mode::Immediate => panic!("Can't write in immediate mode"),
@@ -253,7 +207,7 @@ impl Parameter {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum Mode {
     Position,
     Immediate,
@@ -263,9 +217,9 @@ enum Mode {
 impl From<isize> for Mode {
     fn from(value: isize) -> Self {
         match value {
-            0 => Mode::Position,
-            1 => Mode::Immediate,
-            2 => Mode::Relative,
+            0 => Self::Position,
+            1 => Self::Immediate,
+            2 => Self::Relative,
             v => panic!("Unknown mode {v}"),
         }
     }
