@@ -62,14 +62,14 @@ impl IntcodeComputer {
         loop {
             match self.decode() {
                 Instruction::Add(params) => {
-                    let result = params[0].value(self) + params[1].value(self);
-                    let addr = params[2].write_addr(self);
+                    let result = self.param_value(&params[0]) + self.param_value(&params[1]);
+                    let addr = self.write_addr(&params[2]);
                     self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
                 Instruction::Multiply(params) => {
-                    let result = params[0].value(self) * params[1].value(self);
-                    let addr = params[2].write_addr(self);
+                    let result = self.param_value(&params[0]) * self.param_value(&params[1]);
+                    let addr = self.write_addr(&params[2]);
                     self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
@@ -77,42 +77,44 @@ impl IntcodeComputer {
                     let Some(input) = self.input.pop_front() else {
                         return RunState::AwaitingInput;
                     };
-                    let addr = param.write_addr(self);
+                    let addr = self.write_addr(&param);
                     self.memory[addr] = input;
                     self.ip += 2;
                 }
                 Instruction::Output(param) => {
-                    self.output.push_back(param.value(self));
+                    self.output.push_back(self.param_value(&param));
                     self.ip += 2;
                 }
                 Instruction::JumpIfTrue(params) => {
-                    if params[0].value(self) != 0 {
-                        self.ip = params[1].value(self) as usize;
+                    if self.param_value(&params[0]) != 0 {
+                        self.ip = self.param_value(&params[1]) as usize;
                     } else {
                         self.ip += params.len() + 1;
                     }
                 }
                 Instruction::JumpIfFalse(params) => {
-                    if params[0].value(self) == 0 {
-                        self.ip = params[1].value(self) as usize;
+                    if self.param_value(&params[0]) == 0 {
+                        self.ip = self.param_value(&params[1]) as usize;
                     } else {
                         self.ip += params.len() + 1;
                     }
                 }
                 Instruction::LessThan(params) => {
-                    let result = isize::from(params[0].value(self) < params[1].value(self));
-                    let addr = params[2].write_addr(self);
+                    let result =
+                        isize::from(self.param_value(&params[0]) < self.param_value(&params[1]));
+                    let addr = self.write_addr(&params[2]);
                     self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
                 Instruction::Equals(params) => {
-                    let result = isize::from(params[0].value(self) == params[1].value(self));
-                    let addr = params[2].write_addr(self);
+                    let result =
+                        isize::from(self.param_value(&params[0]) == self.param_value(&params[1]));
+                    let addr = self.write_addr(&params[2]);
                     self.memory[addr] = result;
                     self.ip += params.len() + 1;
                 }
                 Instruction::AdjustRelativeBase(param) => {
-                    self.relative_base += param.value(self);
+                    self.relative_base += self.param_value(&param);
                     self.ip += 2;
                 }
                 Instruction::Halt => return RunState::Halted,
@@ -147,6 +149,22 @@ impl IntcodeComputer {
             9 => Instruction::AdjustRelativeBase(params.next().unwrap()),
             99 => Instruction::Halt,
             unknown => panic!("Unknown opcode {unknown}"),
+        }
+    }
+
+    fn param_value(&self, param: &Parameter) -> isize {
+        match param.mode {
+            Mode::Position => self.memory[param.value as usize],
+            Mode::Immediate => param.value,
+            Mode::Relative => self.memory[(param.value + self.relative_base) as usize],
+        }
+    }
+
+    fn write_addr(&self, param: &Parameter) -> usize {
+        match param.mode {
+            Mode::Position => param.value as usize,
+            Mode::Immediate => panic!("Can't write in immediate mode"),
+            Mode::Relative => (param.value + self.relative_base) as usize,
         }
     }
 }
@@ -187,24 +205,6 @@ enum Instruction {
 struct Parameter {
     value: isize,
     mode: Mode,
-}
-
-impl Parameter {
-    fn value(&self, computer: &IntcodeComputer) -> isize {
-        match self.mode {
-            Mode::Position => computer.memory[self.value as usize],
-            Mode::Immediate => self.value,
-            Mode::Relative => computer.memory[(self.value + computer.relative_base) as usize],
-        }
-    }
-
-    fn write_addr(&self, computer: &IntcodeComputer) -> usize {
-        match self.mode {
-            Mode::Position => self.value as usize,
-            Mode::Immediate => panic!("Can't write in immediate mode"),
-            Mode::Relative => (self.value + computer.relative_base) as usize,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
