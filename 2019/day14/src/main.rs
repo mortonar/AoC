@@ -20,8 +20,8 @@ fn main() -> Result<()> {
             .min_required_for("ORE", Chemical::new(fuel, "FUEL"))
             .amount;
         match spent_ore.cmp(&target_ore) {
-            Ordering::Less => Direction::Low(()),
-            _ => Direction::High(()),
+            Ordering::Greater => Direction::High(()),
+            _ => Direction::Low(()),
         }
     });
     println!("Part 2: {max_fuel}");
