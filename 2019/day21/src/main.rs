@@ -9,13 +9,7 @@ fn main() -> Result<()> {
     let damage = run_spring(
         &program,
         &[
-            "NOT A J",
-            "NOT B T",
-            "OR T J",
-            "NOT C T",
-            "OR T J",
-            "AND D J",
-            "WALK",
+            "NOT A J", "NOT B T", "OR T J", "NOT C T", "OR T J", "AND D J", "WALK",
         ],
     )?;
     println!("Part 1: {damage}");
@@ -24,17 +18,8 @@ fn main() -> Result<()> {
     let damage = run_spring(
         &program,
         &[
-            "NOT A J",
-            "NOT B T",
-            "OR T J",
-            "NOT C T",
-            "OR T J",
-            "AND D J",
-            "NOT E T",
-            "NOT T T",
-            "OR H T",
-            "AND T J",
-            "RUN",
+            "NOT A J", "NOT B T", "OR T J", "NOT C T", "OR T J", "AND D J", "NOT E T", "NOT T T",
+            "OR H T", "AND T J", "RUN",
         ],
     )?;
     println!("\nPart 2: {damage}");
@@ -54,7 +39,7 @@ fn run_spring(program: &Program, spring_script: &[&str]) -> Result<isize> {
         for c in line.chars() {
             computer.input.push_back(c as u8 as isize);
         }
-        computer.input.push_back('\n' as u8 as isize);
+        computer.input.push_back(b'\n' as isize);
     }
 
     loop {
