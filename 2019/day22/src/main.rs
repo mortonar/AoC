@@ -27,7 +27,6 @@ fn main() -> Result<()> {
     let card = apply_inverse(a_k, b_k, target_pos, deck_size)?;
     println!("Part 2: {}", card);
 
-
     Ok(())
 }
 
