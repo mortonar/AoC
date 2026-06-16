@@ -34,10 +34,11 @@ impl Map {
     fn trees_hit(&self, xd: usize, yd: usize) -> usize {
         let mut trees = 0;
         let (mut x, mut y) = (0, 0);
-        let len = self.cells[0].len();
+        let cols = self.cells[0].len();
+        let rows = self.cells.len();
 
-        while x < self.cells.len() {
-            y %= len;
+        while x < rows {
+            y %= cols;
 
             if self.cells[x][y] {
                 trees += 1;
