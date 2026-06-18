@@ -38,7 +38,8 @@ trait BoardingPass {
 
 impl BoardingPass for String {
     // Apparently "binary space partitioning" the problem is describing amounts to representing the
-    // row/col selection as one 10-bit binary number.
+    // row/col selection as one 10-bit binary number. Multiplying row num (7 bits) by 8 is a shift
+    // by 3, making room for the last 3 bits of the column.
     fn seat_id(&self) -> usize {
         let mut id = 0;
         let mut pow_2 = 1;
