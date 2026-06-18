@@ -37,30 +37,20 @@ trait BoardingPass {
 }
 
 impl BoardingPass for String {
+    // Apparently "binary space partitioning" the problem is describing amounts to representing the
+    // row/col selection as one 10-bit binary number.
     fn seat_id(&self) -> usize {
-        let row = partition_select(&self[0..=6], 127);
-        let col = partition_select(&self[7..], 7);
-        row * 8 + col
-    }
-}
-
-fn partition_select(seq: &str, upper: usize) -> usize {
-    let (mut lower, mut upper) = (0, upper);
-    for s in seq.chars() {
-        match s {
-            'F' | 'L' => {
-                upper = (upper - lower) / 2 + lower;
+        let mut id = 0;
+        let mut pow_2 = 1;
+        for s in self.chars().rev() {
+            match s {
+                'B' | 'R' => {
+                    id += pow_2;
+                }
+                _ => {}
             }
-            'B' | 'R' => {
-                lower = (upper - lower) / 2 + lower + 1;
-            }
-            _ => panic!("Unrecognised character: {s}"),
+            pow_2 <<= 1;
         }
+        id
     }
-
-    if lower != upper {
-        panic!("Sequence {seq} did not perfectly split the space. lower: {lower} | upper: {upper}");
-    }
-
-    lower
 }
