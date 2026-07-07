@@ -19,26 +19,42 @@ fn parse_input() -> Result<Vec<Instruction>> {
 fn run(program: &[Instruction], version: Version) -> usize {
     let mut memory = HashMap::new();
     let mut mask = Mask::default();
+    let apply = match version {
+        Version::V1 => apply_v1,
+        Version::V2 => apply_v2,
+    };
 
     for instruction in program.iter() {
         match instruction {
             Instruction::Mask(m) => {
                 mask = m.clone();
             }
-            Instruction::Mem(addr, val) => match version {
-                Version::V1 => {
-                    memory.insert(*addr, (mask.ones | val) & mask.zeros);
-                }
-                Version::V2 => {
-                    for a in apply_v2(&mask, *addr) {
-                        memory.insert(a, *val);
-                    }
-                }
-            },
+            Instruction::Mem(addr, val) => apply(&mut memory, &mask, *addr, *val),
         }
     }
 
     memory.values().sum()
+}
+
+fn apply_v1(memory: &mut HashMap<usize, usize>, mask: &Mask, addr: usize, value: usize) {
+    memory.insert(addr, (mask.ones | value) & mask.zeros);
+}
+
+fn apply_v2(memory: &mut HashMap<usize, usize>, mask: &Mask, addr: usize, value: usize) {
+    let addr = addr | mask.ones;
+    let mut addresses = vec![addr];
+    for &bit in &mask.floating {
+        let one_mask = 1 << bit;
+        let zero_mask = !one_mask;
+        addresses = addresses
+            .iter()
+            .flat_map(|&a| [a | one_mask, a & zero_mask])
+            .collect();
+    }
+
+    for &addr in addresses.iter() {
+        memory.insert(addr, value);
+    }
 }
 
 #[derive(Debug)]
@@ -104,18 +120,4 @@ impl Default for Mask {
 enum Version {
     V1,
     V2,
-}
-
-fn apply_v2(mask: &Mask, addr: usize) -> Vec<usize> {
-    let addr = addr | mask.ones;
-    let mut addresses = vec![addr];
-    for &bit in &mask.floating {
-        let one_mask = 1 << bit;
-        let zero_mask = !one_mask;
-        addresses = addresses
-            .iter()
-            .flat_map(|&a| [a | one_mask, a & zero_mask])
-            .collect();
-    }
-    addresses
 }
