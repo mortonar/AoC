@@ -45,9 +45,5 @@ fn find_loop_size(pub_key: usize) -> usize {
 }
 
 fn calc_encryption_key(subject: usize, loop_size: usize) -> usize {
-    let mut val = 1;
-    for _ in 0..loop_size {
-        val = (val * subject) % 20201227;
-    }
-    val
+    (0..loop_size).fold(1, |val, _| (val * subject) % 20201227)
 }
