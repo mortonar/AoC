@@ -35,42 +35,18 @@ fn part1(diag_report: &Vec<Vec<bool>>) -> usize {
     gamma * epsilon
 }
 
-fn part2(diag_report: &[Vec<bool>]) -> usize {
-    let mut oxy_candidates: HashSet<_> = (0..diag_report.len()).collect();
-    let mut co2_candidates = oxy_candidates.clone();
-
-    #[allow(clippy::needless_range_loop)]
-    for bit in 0..diag_report[0].len() {
-        if oxy_candidates.len() == 1 && co2_candidates.len() == 1 {
-            break;
-        }
-
-        if oxy_candidates.len() > 1 {
-            let counts = oxy_candidates.iter().fold(0, |counts, &oc| {
-                counts + if diag_report[oc][bit] { 1 } else { -1 }
-            });
-            let oxy_bit = counts >= 0;
-            oxy_candidates.retain(|&oc| diag_report[oc][bit] == oxy_bit);
-        }
-
-        if co2_candidates.len() > 1 {
-            let counts = co2_candidates.iter().fold(0, |counts, &cc| {
-                counts + if diag_report[cc][bit] { 1 } else { -1 }
-            });
-            let co2_bit = counts < 0;
-            co2_candidates.retain(|&cc| diag_report[cc][bit] == co2_bit);
-        }
-    }
-
-    let oxy = *oxy_candidates.iter().next().unwrap();
-    let co2 = *co2_candidates.iter().next().unwrap();
-
-    diag_report[oxy].to_decimal() * diag_report[co2].to_decimal()
+fn part2(diag_report: &Vec<Vec<bool>>) -> usize {
+    let oxy = diag_report.filter_to_candidate(|counts| counts >= 0);
+    let co2 = diag_report.filter_to_candidate(|counts| counts < 0);
+    oxy.to_decimal() * co2.to_decimal()
 }
 
 trait BitStats {
     // counts[i] = positive/negative for ith bit having 1 or 0 being most common respectively
     fn bit_counts(&self) -> Vec<i64>;
+    fn filter_to_candidate<F>(&self, count_to_bit: F) -> Vec<bool>
+    where
+        F: Fn(i64) -> bool;
 }
 
 impl BitStats for Vec<Vec<bool>> {
@@ -78,14 +54,35 @@ impl BitStats for Vec<Vec<bool>> {
         let mut counts = vec![0; self[0].len()];
         self.iter().for_each(|num| {
             num.iter().enumerate().for_each(|(pos, &bit)| {
-                if bit {
-                    counts[pos] += 1;
-                } else {
-                    counts[pos] -= 1;
-                }
+                counts[pos] += if bit { 1 } else { -1 };
             })
         });
         counts
+    }
+
+    fn filter_to_candidate<F>(&self, count_to_bit: F) -> Vec<bool>
+    where
+        F: Fn(i64) -> bool,
+    {
+        let mut candidates: HashSet<_> = (0..self.len()).collect();
+
+        #[allow(clippy::needless_range_loop)]
+        for bit in 0..self[0].len() {
+            if candidates.len() == 1 {
+                break;
+            }
+
+            let counts = candidates
+                .iter()
+                .fold(0, |counts, &c| counts + if self[c][bit] { 1 } else { -1 });
+            let selected_bit = count_to_bit(counts);
+            candidates.retain(|&oc| self[oc][bit] == selected_bit);
+        }
+
+        assert_eq!(candidates.len(), 1);
+
+        let choice = *candidates.iter().next().unwrap();
+        self[choice].clone()
     }
 }
 
