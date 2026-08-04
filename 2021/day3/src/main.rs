@@ -23,16 +23,9 @@ fn parse_input() -> Result<Vec<Vec<bool>>> {
 }
 
 fn part1(diag_report: &Vec<Vec<bool>>) -> usize {
-    let counts = diag_report.bit_counts();
-
-    let (mut gamma, mut epsilon) = (0, 0);
-    for &count in counts.iter() {
-        let (gamma_bit, epsilon_bit) = if count > 0 { (1, 0) } else { (0, 1) };
-        gamma = (gamma << 1) | gamma_bit;
-        epsilon = (epsilon << 1) | epsilon_bit;
-    }
-
-    gamma * epsilon
+    let gamma = diag_report.bit_majorities();
+    let epsilon: Vec<_> = gamma.iter().map(|b| !b).collect();
+    gamma.to_decimal() * epsilon.to_decimal()
 }
 
 fn part2(diag_report: &Vec<Vec<bool>>) -> usize {
@@ -43,21 +36,21 @@ fn part2(diag_report: &Vec<Vec<bool>>) -> usize {
 
 trait BitStats {
     // counts[i] = positive/negative for ith bit having 1 or 0 being most common respectively
-    fn bit_counts(&self) -> Vec<i64>;
+    fn bit_majorities(&self) -> Vec<bool>;
     fn filter_to_candidate<F>(&self, count_to_bit: F) -> Vec<bool>
     where
         F: Fn(i64) -> bool;
 }
 
 impl BitStats for Vec<Vec<bool>> {
-    fn bit_counts(&self) -> Vec<i64> {
+    fn bit_majorities(&self) -> Vec<bool> {
         let mut counts = vec![0; self[0].len()];
         self.iter().for_each(|num| {
             num.iter().enumerate().for_each(|(pos, &bit)| {
                 counts[pos] += if bit { 1 } else { -1 };
             })
         });
-        counts
+        counts.iter().map(|&count| count > 0).collect()
     }
 
     fn filter_to_candidate<F>(&self, count_to_bit: F) -> Vec<bool>
