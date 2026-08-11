@@ -92,9 +92,7 @@ fn decode(patterns: &[u8]) -> [u8; 7] {
     [a, b, c, d, e, f, g]
 }
 
-fn eval(pattern: u8, decoded: &[u8; 7]) -> usize {
-    let scrambled_mask = pattern;
-
+fn eval(scrambled_mask: u8, decoded: &[u8; 7]) -> usize {
     let mut mask: u8 = 0;
     for (segment, &wire) in decoded.iter().enumerate() {
         if (scrambled_mask & wire) != 0 {
