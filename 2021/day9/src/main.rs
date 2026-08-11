@@ -59,11 +59,7 @@ impl Map {
             for (j, &cell) in row.iter().enumerate() {
                 let is_low = [(-1, 0), (0, -1), (0, 1), (1, 0)].iter().all(|(di, dj)| {
                     let (ni, nj) = (i as isize + di, j as isize + dj);
-                    if ni < 0
-                        || ni >= self.cells.len() as isize
-                        || nj < 0
-                        || nj >= row.len() as isize
-                    {
+                    if !self.in_bounds((ni, nj)) {
                         return true;
                     }
 
@@ -94,11 +90,7 @@ impl Map {
         while let Some((ci, cj)) = queue.pop() {
             for (di, dj) in [(-1, 0), (0, -1), (0, 1), (1, 0)] {
                 let (ni, nj) = (ci as isize + di, cj as isize + dj);
-                if ni < 0
-                    || ni >= self.cells.len() as isize
-                    || nj < 0
-                    || nj >= self.cells[ni as usize].len() as isize
-                {
+                if !self.in_bounds((ni, nj)) {
                     continue;
                 }
 
@@ -110,5 +102,12 @@ impl Map {
         }
 
         visited
+    }
+
+    fn in_bounds(&self, (i, j): (isize, isize)) -> bool {
+        i >= 0
+            && i < self.cells.len() as isize
+            && j >= 0
+            && j < self.cells[i as usize].len() as isize
     }
 }
