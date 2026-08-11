@@ -10,7 +10,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-type Input = Vec<(Vec<u8>, Vec<Vec<char>>)>;
+type Input = Vec<(Vec<u8>, Vec<u8>)>;
 
 fn parse_input() -> Result<Input> {
     stdin()
@@ -27,7 +27,7 @@ fn parse_input() -> Result<Input> {
                 .collect::<Result<Vec<_>>>()?;
             let digits = digits
                 .split_ascii_whitespace()
-                .map(|s| Ok(s.chars().collect::<Vec<_>>()))
+                .map(to_bitmask)
                 .collect::<Result<Vec<_>>>()?;
             Ok((patterns, digits))
         })
@@ -46,22 +46,22 @@ fn to_bitmask(s: &str) -> Result<u8> {
     Ok(mask)
 }
 
-fn part1(signals_digits: &[(Vec<u8>, Vec<Vec<char>>)]) -> usize {
+fn part1(signals_digits: &[(Vec<u8>, Vec<u8>)]) -> usize {
     signals_digits
         .iter()
         .flat_map(|(_s, d)| d)
-        .filter(|d| matches!(d.len(), 2 | 3 | 4 | 7))
+        .filter(|d| matches!(d.count_ones(), 2 | 3 | 4 | 7))
         .count()
 }
 
-fn part2(signals_digits: &[(Vec<u8>, Vec<Vec<char>>)]) -> usize {
+fn part2(signals_digits: &[(Vec<u8>, Vec<u8>)]) -> usize {
     signals_digits
         .iter()
         .map(|(signals, digits)| (decode(signals), digits))
         .map(|(decoded, digits)| {
             digits
                 .iter()
-                .fold(0, |acc, d| acc * 10 + eval(d.as_slice(), &decoded))
+                .fold(0, |acc, &d| acc * 10 + eval(d, &decoded))
         })
         .sum()
 }
@@ -92,11 +92,8 @@ fn decode(patterns: &[u8]) -> [u8; 7] {
     [a, b, c, d, e, f, g]
 }
 
-fn eval(pattern: &[char], decoded: &[u8; 7]) -> usize {
-    let mut scrambled_mask: u8 = 0;
-    for c in pattern {
-        scrambled_mask |= 1 << (*c as usize - 97);
-    }
+fn eval(pattern: u8, decoded: &[u8; 7]) -> usize {
+    let scrambled_mask = pattern;
 
     let mut mask: u8 = 0;
     for (segment, &wire) in decoded.iter().enumerate() {
