@@ -80,12 +80,10 @@ impl Map {
     }
 
     fn basins(&self) -> Vec<HashSet<(usize, usize)>> {
-        let mut basins = Vec::new();
-        for (i, j, _c) in self.low_points() {
-            let basin = self.bfs((i, j));
-            basins.push(basin);
-        }
-        basins
+        self.low_points()
+            .iter()
+            .map(|&(i, j, _c)| self.bfs((i, j)))
+            .collect()
     }
 
     fn bfs(&self, (i, j): (usize, usize)) -> HashSet<(usize, usize)> {
