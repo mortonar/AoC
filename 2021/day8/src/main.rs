@@ -21,17 +21,13 @@ fn parse_input() -> Result<Input> {
             let Some((signals, digits)) = l.trim().split_once(" | ") else {
                 bail!("Missing delimiter ' | '")
             };
-            let patterns = signals
-                .split_ascii_whitespace()
-                .map(to_bitmask)
-                .collect::<Result<Vec<_>>>()?;
-            let digits = digits
-                .split_ascii_whitespace()
-                .map(to_bitmask)
-                .collect::<Result<Vec<_>>>()?;
-            Ok((patterns, digits))
+            Ok((parse_masks(signals)?, parse_masks(digits)?))
         })
         .collect()
+}
+
+fn parse_masks(s: &str) -> Result<Vec<u8>> {
+    s.split_ascii_whitespace().map(to_bitmask).collect()
 }
 
 fn to_bitmask(s: &str) -> Result<u8> {
