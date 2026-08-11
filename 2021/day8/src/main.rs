@@ -19,7 +19,7 @@ fn parse_input() -> Result<Input> {
         .map(|l| {
             let l = l.map_err(Error::from)?;
             let Some((signals, digits)) = l.trim().split_once(" | ") else {
-                bail!("")
+                bail!("Missing delimiter ' | '")
             };
             let patterns = signals
                 .split_ascii_whitespace()
