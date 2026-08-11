@@ -84,8 +84,7 @@ impl Map {
 
     fn bfs(&self, (i, j): (usize, usize)) -> HashSet<(usize, usize)> {
         let mut queue = vec![(i, j)];
-        let mut visited = HashSet::new();
-        visited.insert((i, j));
+        let mut visited = HashSet::from([(i, j)]);
 
         while let Some((ci, cj)) = queue.pop() {
             for (di, dj) in [(-1, 0), (0, -1), (0, 1), (1, 0)] {
