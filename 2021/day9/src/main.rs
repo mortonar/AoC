@@ -81,20 +81,10 @@ impl Map {
 
     fn basins(&self) -> Vec<HashSet<(usize, usize)>> {
         let mut basins = Vec::new();
-
         for (i, j, _c) in self.low_points() {
             let basin = self.bfs((i, j));
-
-            if let Some(to_merge) = basins
-                .iter()
-                .position(|b: &HashSet<(usize, usize)>| !b.is_disjoint(&basin))
-            {
-                basins[to_merge].extend(basin);
-            } else {
-                basins.push(basin);
-            }
+            basins.push(basin);
         }
-
         basins
     }
 
