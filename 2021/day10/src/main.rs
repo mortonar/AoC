@@ -19,12 +19,7 @@ fn parse_input() -> Result<Vec<String>> {
 }
 
 fn part1(nav: &[String]) -> usize {
-    nav.iter()
-        .map(|n| match syntax_eval(n) {
-            Ok(_) => 0,
-            Err(score) => score,
-        })
-        .sum()
+    nav.iter().filter_map(|n| syntax_eval(n).err()).sum()
 }
 
 fn part2(nav: &[String]) -> usize {
