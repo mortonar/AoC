@@ -34,17 +34,11 @@ fn parse_input() -> Result<Graph> {
 }
 
 fn part1(graph: &Graph) -> usize {
-    graph.path_count_dfs(
-        "end",
-        &mut Context::new(vec!["start".to_string()], Filter::UniqueSmall),
-    )
+    graph.path_count_dfs("end", &mut Context::new("start", Filter::UniqueSmall))
 }
 
 fn part2(graph: &Graph) -> usize {
-    graph.path_count_dfs(
-        "end",
-        &mut Context::new(vec!["start".to_string()], Filter::DupeSmall),
-    )
+    graph.path_count_dfs("end", &mut Context::new("start", Filter::DupeSmall))
 }
 
 #[derive(Debug)]
@@ -80,9 +74,9 @@ impl CaveExt for String {
 }
 
 impl Context {
-    fn new(current: Vec<String>, filter: Filter) -> Self {
-        let mut used = HashMap::new();
-        used.insert(current.last().unwrap().clone(), 1);
+    fn new(start: &str, filter: Filter) -> Self {
+        let current = vec![start.to_string()];
+        let used = HashMap::from([(start.to_string(), 1)]);
 
         Self {
             current,
