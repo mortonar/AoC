@@ -115,6 +115,7 @@ impl RiskMap {
         let width = self.cells[0].len();
         let mut cells = vec![vec![0; width * 5]; height * 5];
 
+        #[allow(clippy::needless_range_loop)]
         for i in 0..cells.len() {
             for j in 0..cells[i].len() {
                 let base = self.cells[i % height][j % width];
