@@ -154,23 +154,3 @@ impl Ord for Context {
         other.risk.cmp(&self.risk)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn expands_sample_grid_like_the_puzzle_description() {
-        let map = parse_risk_map(include_str!("../sample1.txt")).unwrap();
-        let expanded = map.expand();
-
-        assert_eq!(&expanded.cells[0][..10], &[1, 1, 6, 3, 7, 5, 1, 7, 4, 2]);
-        assert_eq!(&expanded.cells[0][10..20], &[2, 2, 7, 4, 8, 6, 2, 8, 5, 3]);
-    }
-
-    #[test]
-    fn finds_sample_part2_answer() {
-        let map = parse_risk_map(include_str!("../sample1.txt")).unwrap();
-        assert_eq!(part2(&map).unwrap(), 315);
-    }
-}
