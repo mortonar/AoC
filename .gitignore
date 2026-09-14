@@ -2,4 +2,5 @@ debug/
 target/
 .idea/
 *.txt
+*.trans
 .DS_Store
