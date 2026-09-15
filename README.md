@@ -12,7 +12,7 @@
 * 2025
 
 ## Years in progress 🚧:
+* 2022
 
 # Years to do 📝:
-* 2022
 * 2023
