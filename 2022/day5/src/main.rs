@@ -50,10 +50,7 @@ impl Stacks for Vec<Vec<char>> {
     }
 
     fn top_crates(&self) -> String {
-        self.iter()
-            .filter(|s| !s.is_empty())
-            .map(|s| s.last().unwrap())
-            .collect()
+        self.iter().filter_map(|s| s.last()).collect()
     }
 }
 
