@@ -13,7 +13,7 @@ fn main() -> Result<()> {
 
 fn parse_input() -> Result<Directory> {
     let mut root = Directory::new("");
-    let mut path = Vec::new();
+    let mut working_dir = Vec::new();
 
     let mut lines = stdin().lock().lines().peekable();
     'outer: loop {
@@ -26,13 +26,13 @@ fn parse_input() -> Result<Directory> {
         match *tokens.as_slice() {
             ["$", "cd", dir] => match dir {
                 "/" => {
-                    path.clear();
+                    working_dir.clear();
                 }
                 ".." => {
-                    path.pop();
+                    working_dir.pop();
                 }
                 _ => {
-                    path.push(dir.to_owned());
+                    working_dir.push(dir.to_owned());
                 }
             },
             ["$", "ls"] => 'files: loop {
@@ -51,12 +51,12 @@ fn parse_input() -> Result<Directory> {
 
                     if tokens[0] == "dir" {
                         let dir = Directory::new(tokens[1]);
-                        root.add_directory(&path, dir);
+                        root.add_directory(&working_dir, dir);
                     } else {
                         let file = File {
                             size: tokens[0].parse()?,
                         };
-                        root.add_file(&path, file);
+                        root.add_file(&working_dir, file);
                     };
                 } else {
                     break 'outer;
