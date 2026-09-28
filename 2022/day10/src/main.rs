@@ -30,7 +30,7 @@ fn part1(program: &Program) -> isize {
     let mut sum = 0;
     let mut special = vec![220, 180, 140, 100, 60, 20];
     let mut x = 1;
-    for (cycle, delta) in (1..).zip(program.with_cycles()) {
+    for (cycle, delta) in program.with_cycles() {
         if *special.last().unwrap() == cycle {
             sum += cycle * x;
 
@@ -47,9 +47,8 @@ fn part1(program: &Program) -> isize {
 
 fn part2(program: &Program) {
     let mut x = 1;
-    for (cycle, delta) in (1..).zip(program.with_cycles()) {
+    for (cycle, delta) in program.with_cycles() {
         let draw_pos = (cycle - 1) % 40;
-
         if [x - 1, x, x + 1].contains(&draw_pos) {
             print!("#")
         } else {
@@ -89,14 +88,14 @@ impl FromStr for Instruction {
 }
 
 impl Program {
-    fn with_cycles(&self) -> impl Iterator<Item = isize> {
-        self.instructions.iter().flat_map(|i| {
+    fn with_cycles(&self) -> impl Iterator<Item = (isize, isize)> {
+        (1..).zip(self.instructions.iter().flat_map(|i| {
             let (delta, cycles) = match i {
                 Instruction::AddX(v) => (*v, 2),
                 Instruction::Noop => (0, 1),
             };
 
             [0, delta].into_iter().take(cycles)
-        })
+        }))
     }
 }
