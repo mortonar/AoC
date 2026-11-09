@@ -14,7 +14,7 @@ fn main() -> Result<()> {
 fn parse_input() -> Result<Races> {
     let mut lines = stdin().lock().lines();
     let times = parse_nums(&lines.next().ok_or_else(|| anyhow!("missing times"))??)?;
-    let distances = parse_nums(&lines.next().ok_or_else(|| anyhow!("missing times"))??)?;
+    let distances = parse_nums(&lines.next().ok_or_else(|| anyhow!("missing distances"))??)?;
     Ok(Races { times, distances })
 }
 
