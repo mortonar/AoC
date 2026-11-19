@@ -149,7 +149,7 @@ impl Map {
     // Scale each pipe up to a 3 x 3 block. The center is the original tile and
     // each connection gets an arm reaching the edge of the block:
     //
-    //   |     -     L     J     7     F  
+    //   |     -     L     J     7     F
     //   .#.   ...   .#.   .#.   ...   ...
     //   .#.   ###   .##   ##.   ##.   .##
     //   .#.   ...   ...   ...   .#.   .#.
