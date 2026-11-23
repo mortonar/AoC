@@ -85,11 +85,12 @@ fn arrangements_dfs(
     }
 
     let mut arrangements = 0;
+
     if matches!(springs[0], '.' | '?') {
         arrangements += arrangements_dfs(&springs[1..], checksum, memo);
     }
+
     if !checksum.is_empty()
-        && springs.len() >= checksum[0]
         && springs
             .iter()
             .take_while(|&s| matches!(s, '#' | '?'))
